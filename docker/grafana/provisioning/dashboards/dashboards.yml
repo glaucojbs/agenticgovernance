@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: Governance
+    orgId: 1
+    folder: "Governança Agêntica"
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards

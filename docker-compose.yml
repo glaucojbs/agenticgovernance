@@ -1,0 +1,79 @@
+---
+# Stack de observabilidade e governança para desenvolvimento e staging.
+#
+# Serviços:
+#   jaeger    — Distributed tracing (UI: http://localhost:16686)
+#   prometheus — Métricas (UI: http://localhost:9090)
+#   grafana   — Dashboards (UI: http://localhost:3000, admin/admin)
+#   opa       — Open Policy Agent (API: http://localhost:8181)
+#
+# Uso:
+#   docker compose up -d
+#   OTEL_EXPORTER=otlp OTEL_ENDPOINT=http://localhost:4318 python -m examples.02_governed_agent
+#   make demo-observability
+
+version: "3.9"
+
+services:
+
+  # ── Jaeger — Distributed Tracing ─────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: governance-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP  ← aponte OTEL_ENDPOINT aqui
+      - "14250:14250"   # Jaeger gRPC (modelo legado)
+    restart: unless-stopped
+    networks: [governance]
+
+  # ── Prometheus — Métricas ─────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: governance-prometheus
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks: [governance]
+
+  # ── Grafana — Dashboards ──────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana-oss:10.4.2
+    container_name: governance-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on: [prometheus, jaeger]
+    restart: unless-stopped
+    networks: [governance]
+
+  # ── OPA — Open Policy Agent ───────────────────────────────────────────────
+  opa:
+    image: openpolicyagent/opa:0.64.1
+    container_name: governance-opa
+    command:
+      - run
+      - --server
+      - --log-level=info
+      - --log-format=json
+      - /policies
+    volumes:
+      - ./docker/opa/policies:/policies:ro
+    ports:
+      - "8181:8181"
+    restart: unless-stopped
+    networks: [governance]
+
+networks:
+  governance:
+    driver: bridge

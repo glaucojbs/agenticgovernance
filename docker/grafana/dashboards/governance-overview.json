@@ -1,0 +1,107 @@
+{
+  "title": "Governança Agêntica — Visão Geral",
+  "uid": "governance-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Decisões de Política (últimas 5min)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [{
+        "expr": "sum(rate(governance_policy_decisions_total[5m])) by (decision)",
+        "legendFormat": "{{decision}}"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 2,
+      "title": "Ações Executadas vs Negadas",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(governance_actions_executed_total[1m]))",
+          "legendFormat": "Executadas"
+        },
+        {
+          "expr": "sum(rate(governance_actions_denied_total[1m]))",
+          "legendFormat": "Negadas"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Latência de Execução P95 (ms)",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(governance_action_latency_ms_bucket[5m])) by (le))",
+        "legendFormat": "P95 latency"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Kill Switch Activations",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [{
+        "expr": "sum(governance_kill_switch_triggers_total)",
+        "legendFormat": "Total kill switch"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Aprovações (solicitadas / concedidas / negadas)",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 4 },
+      "targets": [{
+        "expr": "sum(governance_approvals_total) by (status)",
+        "legendFormat": "{{status}}"
+      }]
+    },
+    {
+      "id": 6,
+      "title": "Taxa de Negação por Agente",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "targets": [{
+        "expr": "sum(rate(governance_actions_denied_total[5m])) by (agent_id) / sum(rate(governance_policy_decisions_total[5m])) by (agent_id)",
+        "legendFormat": "{{agent_id}}"
+      }]
+    },
+    {
+      "id": 7,
+      "title": "Orçamento — Tokens Consumidos por Agente",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [{
+        "expr": "governance_budget_tokens_used{} by (agent_id)",
+        "legendFormat": "{{agent_id}}"
+      }]
+    },
+    {
+      "id": 8,
+      "title": "Latência de Avaliação de Política P99",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [{
+        "expr": "histogram_quantile(0.99, sum(rate(governance_policy_eval_latency_ms_bucket[5m])) by (le, decision))",
+        "legendFormat": "P99 {{decision}}"
+      }]
+    }
+  ]
+}

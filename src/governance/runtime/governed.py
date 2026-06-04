@@ -9,7 +9,7 @@ Para cada ação que um agente quer executar, na ordem:
   5. Verifica orçamento (custo, tokens, calls, rate)
   6. Solicita aprovação humana se necessário
   7. Executa a ferramenta com timeout
-  8. Audita TUDO
+  8. Audita TUDO + emite traces/métricas via OpenTelemetry
 
 Este é o único caminho pelo qual um agente pode tocar uma ferramenta.
 """
@@ -18,8 +18,11 @@ from __future__ import annotations
 
 import secrets
 import threading
-from typing import Any
+import time
+from typing import TYPE_CHECKING, Any
 
+from opentelemetry import trace
+from opentelemetry.trace import StatusCode
 from pydantic import BaseModel
 
 from governance.approval.gate import ApprovalGate, ApprovalRequest, KillSwitchActiveError
@@ -28,6 +31,19 @@ from governance.budget.guard import BudgetExceededError, BudgetGuard
 from governance.identity.models import AgentEnvironment, AgentIdentity
 from governance.policy.engine import ActionRequest, PolicyDecision, PolicyEngine, RiskLevel
 from governance.registry.catalog import AgentRegistry, ToolRegistry
+from governance.telemetry.otel import (
+    SPAN_ATTR_AGENT_ID,
+    SPAN_ATTR_AGENT_NAME,
+    SPAN_ATTR_DENIED_REASON,
+    SPAN_ATTR_ENVIRONMENT,
+    SPAN_ATTR_POLICY_DECISION,
+    SPAN_ATTR_RISK_LEVEL,
+    SPAN_ATTR_TOOL_NAME,
+    GovernanceTelemetry,
+)
+
+if TYPE_CHECKING:
+    from governance.anomaly.detector import AnomalyDetector
 
 
 class ExecutionResult(BaseModel):
@@ -40,6 +56,7 @@ class ExecutionResult(BaseModel):
     error: str | None = None
     policy_decision: str | None = None
     audit_sequence: int | None = None
+    trace_id: str | None = None  # ID do span OTEL para correlação
 
 
 class GovernanceError(Exception):
@@ -52,7 +69,8 @@ class GovernedAgentRuntime:
     """
     Runtime que envolve toda execução de ferramentas por agentes.
 
-    Configurar uma instância por sessão/contexto de execução.
+    Aceita opcionalmente um AnomalyDetector e um GovernanceTelemetry.
+    Se não fornecidos, opera em modo básico (retrocompatível).
     """
 
     DEFAULT_TIMEOUT_SECONDS = 30
@@ -66,6 +84,8 @@ class GovernedAgentRuntime:
         tool_registry: ToolRegistry,
         agent_registry: AgentRegistry,
         timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
+        telemetry: GovernanceTelemetry | None = None,
+        anomaly_detector: AnomalyDetector | None = None,
     ) -> None:
         self._policy = policy_engine
         self._audit = audit_logger
@@ -74,6 +94,8 @@ class GovernedAgentRuntime:
         self._tools = tool_registry
         self._agents = agent_registry
         self._timeout = timeout_seconds
+        self._tel = telemetry
+        self._anomaly = anomaly_detector
 
     def execute(
         self,
@@ -82,12 +104,59 @@ class GovernedAgentRuntime:
         parameters: dict[str, Any] | None = None,
         risk_level: RiskLevel | None = None,
     ) -> ExecutionResult:
-        """
-        Ponto de entrada único para execução de ferramentas.
-
-        Todos os controles de governança são aplicados aqui.
-        """
+        """Ponto de entrada único para execução de ferramentas."""
         params = parameters or {}
+        start_ms = time.monotonic() * 1000
+
+        tracer = trace.get_tracer("governance.runtime")
+        with tracer.start_as_current_span(
+            f"governance.execute/{tool_name}",
+            kind=trace.SpanKind.INTERNAL,
+        ) as span:
+            span.set_attribute(SPAN_ATTR_AGENT_ID, identity.id)
+            span.set_attribute(SPAN_ATTR_AGENT_NAME, identity.name)
+            span.set_attribute(SPAN_ATTR_TOOL_NAME, tool_name)
+            span.set_attribute(SPAN_ATTR_ENVIRONMENT, identity.environment.value)
+
+            result = self._execute_inner(identity, tool_name, params, risk_level, span)
+
+            # Métricas de latência
+            elapsed_ms = time.monotonic() * 1000 - start_ms
+            if self._tel:
+                attrs = {
+                    "agent.id": identity.id,
+                    "tool.name": tool_name,
+                    "environment": identity.environment.value,
+                    "success": str(result.success),
+                }
+                self._tel.action_latency.record(elapsed_ms, attrs)
+
+            # Correlação de trace no resultado
+            ctx = span.get_span_context()
+            if ctx and ctx.is_valid:
+                result.trace_id = format(ctx.trace_id, "032x")
+
+            if result.success:
+                span.set_status(StatusCode.OK)
+            else:
+                span.set_status(StatusCode.ERROR, result.error or "governance blocked")
+                span.set_attribute(SPAN_ATTR_DENIED_REASON, result.error or "")
+
+            # Anomaly detection pós-execução
+            if self._anomaly:
+                self._anomaly.observe(identity.id, tool_name, result)
+
+            return result
+
+    def _execute_inner(
+        self,
+        identity: AgentIdentity,
+        tool_name: str,
+        params: dict[str, Any],
+        risk_level: RiskLevel | None,
+        span: trace.Span,
+    ) -> ExecutionResult:
+        """Lógica central de execução — chamada dentro do span raiz."""
 
         # ── 1. Kill switch ────────────────────────────────────────────────────
         try:
@@ -101,10 +170,12 @@ class GovernedAgentRuntime:
                 environment=identity.environment.value,
                 details={"reason": str(e)},
             )
+            if self._tel:
+                self._tel.kill_switch_triggers.add(
+                    1, {"agent.id": identity.id, "tool.name": tool_name}
+                )
             return ExecutionResult(
-                success=False,
-                tool_name=tool_name,
-                agent_id=identity.id,
+                success=False, tool_name=tool_name, agent_id=identity.id,
                 error=f"Kill switch ativo: {e}",
             )
 
@@ -112,60 +183,67 @@ class GovernedAgentRuntime:
         if not identity.is_authenticated():
             self._audit.log(
                 AuditEventType.ACTION_DENIED,
-                agent_id=identity.id,
-                agent_name=identity.name,
-                tool_name=tool_name,
+                agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
                 environment=identity.environment.value,
                 details={"reason": "credencial inválida ou expirada"},
             )
+            if self._tel:
+                self._tel.actions_denied.add(
+                    1, {"agent.id": identity.id, "reason": "invalid_credential"}
+                )
             return ExecutionResult(
-                success=False,
-                tool_name=tool_name,
-                agent_id=identity.id,
+                success=False, tool_name=tool_name, agent_id=identity.id,
                 error="Credencial do agente inválida ou expirada",
             )
 
-        # ── 3. Ciclo de vida no registry (prod exige agente approved) ─────────
+        # ── 3. Ciclo de vida no registry ──────────────────────────────────────
         if identity.environment == AgentEnvironment.PROD and not self._agents.can_run_in_prod(
             identity.id
         ):
-                record = self._agents.get(identity.id)
-                status = record.status.value if record else "não cadastrado"
-                self._audit.log(
-                    AuditEventType.ACTION_DENIED,
-                    agent_id=identity.id,
-                    agent_name=identity.name,
-                    tool_name=tool_name,
-                    environment=identity.environment.value,
-                    details={"reason": f"agente não aprovado para prod (status: {status})"},
+            record = self._agents.get(identity.id)
+            status = record.status.value if record else "não cadastrado"
+            self._audit.log(
+                AuditEventType.ACTION_DENIED,
+                agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
+                environment=identity.environment.value,
+                details={"reason": f"agente não aprovado para prod (status: {status})"},
+            )
+            if self._tel:
+                self._tel.actions_denied.add(
+                    1, {"agent.id": identity.id, "reason": "not_approved_for_prod"}
                 )
-                return ExecutionResult(
-                    success=False,
-                    tool_name=tool_name,
-                    agent_id=identity.id,
-                    error=f"Agente com status '{status}' não pode operar em produção",
-                )
+            return ExecutionResult(
+                success=False, tool_name=tool_name, agent_id=identity.id,
+                error=f"Agente com status '{status}' não pode operar em produção",
+            )
 
         # ── 4. Avaliação de política ──────────────────────────────────────────
         tool_def = self._tools.get(tool_name)
         effective_risk = risk_level or (tool_def.risk_level if tool_def else RiskLevel.MEDIUM)
+        span.set_attribute(SPAN_ATTR_RISK_LEVEL, effective_risk.value)
 
+        pol_start = time.monotonic() * 1000
         action_request = ActionRequest(
-            agent_id=identity.id,
-            agent_name=identity.name,
-            tool_name=tool_name,
-            parameters=params,
-            environment=identity.environment,
-            scopes=identity.scopes,
-            risk_level=effective_risk,
+            agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
+            parameters=params, environment=identity.environment,
+            scopes=identity.scopes, risk_level=effective_risk,
         )
         policy_result = self._policy.evaluate(action_request)
+        pol_elapsed = time.monotonic() * 1000 - pol_start
+
+        if self._tel:
+            self._tel.policy_eval_latency.record(
+                pol_elapsed, {"decision": policy_result.decision.value}
+            )
+            self._tel.policy_decisions.add(
+                1, {"decision": policy_result.decision.value, "tool.name": tool_name}
+            )
+
+        span.set_attribute(SPAN_ATTR_POLICY_DECISION, policy_result.decision.value)
 
         self._audit.log(
             AuditEventType.POLICY_DECISION,
-            agent_id=identity.id,
-            agent_name=identity.name,
-            tool_name=tool_name,
+            agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
             environment=identity.environment.value,
             details={
                 "decision": policy_result.decision.value,
@@ -178,16 +256,16 @@ class GovernedAgentRuntime:
         if policy_result.decision == PolicyDecision.DENY:
             event = self._audit.log(
                 AuditEventType.ACTION_DENIED,
-                agent_id=identity.id,
-                agent_name=identity.name,
-                tool_name=tool_name,
+                agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
                 environment=identity.environment.value,
                 details={"reason": policy_result.reason},
             )
+            if self._tel:
+                self._tel.actions_denied.add(
+                    1, {"agent.id": identity.id, "reason": "policy_deny", "tool.name": tool_name}
+                )
             return ExecutionResult(
-                success=False,
-                tool_name=tool_name,
-                agent_id=identity.id,
+                success=False, tool_name=tool_name, agent_id=identity.id,
                 error=f"Negado por política: {policy_result.reason}",
                 policy_decision=policy_result.decision.value,
                 audit_sequence=event.sequence,
@@ -195,61 +273,62 @@ class GovernedAgentRuntime:
 
         # ── 5. Verificação de orçamento ───────────────────────────────────────
         try:
-            self._budget.check_and_consume(identity.id)
+            budget_status = self._budget.check_and_consume(identity.id)
+            if self._tel:
+                self._tel.budget_tokens_used.add(
+                    budget_status.total_tokens, {"agent.id": identity.id}
+                )
+                self._tel.budget_cost_used.add(
+                    int(budget_status.total_cost_usd * 100), {"agent.id": identity.id}
+                )
         except BudgetExceededError as e:
             event = self._audit.log(
                 AuditEventType.BUDGET_EXCEEDED,
-                agent_id=identity.id,
-                agent_name=identity.name,
-                tool_name=tool_name,
+                agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
                 environment=identity.environment.value,
                 details={"reason": e.reason},
             )
+            if self._tel:
+                self._tel.budget_exceeded.add(1, {"agent.id": identity.id})
             return ExecutionResult(
-                success=False,
-                tool_name=tool_name,
-                agent_id=identity.id,
+                success=False, tool_name=tool_name, agent_id=identity.id,
                 error=f"Orçamento excedido: {e.reason}",
                 audit_sequence=event.sequence,
             )
 
-        # ── 6. Aprovação humana (se necessário) ───────────────────────────────
+        # ── 6. Aprovação humana ───────────────────────────────────────────────
         if policy_result.decision == PolicyDecision.REQUIRE_APPROVAL:
             approval_req = ApprovalRequest(
                 request_id=secrets.token_hex(8),
-                agent_id=identity.id,
-                agent_name=identity.name,
-                tool_name=tool_name,
-                parameters=params,
-                risk_level=effective_risk.value,
+                agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
+                parameters=params, risk_level=effective_risk.value,
                 reason=policy_result.reason,
             )
             self._audit.log(
                 AuditEventType.APPROVAL_REQUESTED,
-                agent_id=identity.id,
-                agent_name=identity.name,
-                tool_name=tool_name,
+                agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
                 environment=identity.environment.value,
                 details={"request_id": approval_req.request_id, "reason": policy_result.reason},
             )
+            if self._tel:
+                self._tel.approvals_total.add(
+                    1, {"agent.id": identity.id, "status": "requested"}
+                )
             result = self._approval.request_approval(approval_req)
 
             if result.decision.value == "DENIED":
                 event = self._audit.log(
                     AuditEventType.APPROVAL_DENIED,
-                    agent_id=identity.id,
-                    agent_name=identity.name,
-                    tool_name=tool_name,
+                    agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
                     environment=identity.environment.value,
-                    details={
-                        "request_id": approval_req.request_id,
-                        "notes": result.decision_notes,
-                    },
+                    details={"request_id": approval_req.request_id, "notes": result.decision_notes},
                 )
+                if self._tel:
+                    self._tel.approvals_total.add(
+                        1, {"agent.id": identity.id, "status": "denied"}
+                    )
                 return ExecutionResult(
-                    success=False,
-                    tool_name=tool_name,
-                    agent_id=identity.id,
+                    success=False, tool_name=tool_name, agent_id=identity.id,
                     error=f"Aprovação negada: {result.decision_notes}",
                     policy_decision="REQUIRE_APPROVAL→DENIED",
                     audit_sequence=event.sequence,
@@ -257,53 +336,44 @@ class GovernedAgentRuntime:
 
             self._audit.log(
                 AuditEventType.APPROVAL_GRANTED,
-                agent_id=identity.id,
-                agent_name=identity.name,
-                tool_name=tool_name,
+                agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
                 environment=identity.environment.value,
-                details={
-                    "request_id": approval_req.request_id,
-                    "notes": result.decision_notes,
-                },
+                details={"request_id": approval_req.request_id, "notes": result.decision_notes},
             )
+            if self._tel:
+                self._tel.approvals_total.add(
+                    1, {"agent.id": identity.id, "status": "granted"}
+                )
 
         # ── 7. Execução com timeout ────────────────────────────────────────────
-        output, exec_error = self._execute_with_timeout(
-            tool_name, params, identity
-        )
+        output, exec_error = self._execute_with_timeout(tool_name, params)
 
         # ── 8. Auditoria do resultado ──────────────────────────────────────────
         if exec_error:
             event = self._audit.log(
                 AuditEventType.ERROR,
-                agent_id=identity.id,
-                agent_name=identity.name,
-                tool_name=tool_name,
+                agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
                 environment=identity.environment.value,
                 details={"error": exec_error},
             )
             return ExecutionResult(
-                success=False,
-                tool_name=tool_name,
-                agent_id=identity.id,
-                error=exec_error,
-                audit_sequence=event.sequence,
+                success=False, tool_name=tool_name, agent_id=identity.id,
+                error=exec_error, audit_sequence=event.sequence,
             )
 
         event = self._audit.log(
             AuditEventType.ACTION_EXECUTED,
-            agent_id=identity.id,
-            agent_name=identity.name,
-            tool_name=tool_name,
+            agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
             environment=identity.environment.value,
             details={"parameters": params, "output_preview": str(output)[:200]},
         )
+        if self._tel:
+            self._tel.actions_executed.add(
+                1, {"agent.id": identity.id, "tool.name": tool_name}
+            )
         return ExecutionResult(
-            success=True,
-            tool_name=tool_name,
-            agent_id=identity.id,
-            output=output,
-            policy_decision=policy_result.decision.value,
+            success=True, tool_name=tool_name, agent_id=identity.id,
+            output=output, policy_decision=policy_result.decision.value,
             audit_sequence=event.sequence,
         )
 
@@ -311,9 +381,7 @@ class GovernedAgentRuntime:
         self,
         tool_name: str,
         params: dict[str, Any],
-        identity: AgentIdentity,
     ) -> tuple[Any, str | None]:
-        """Executa a ferramenta com timeout via thread."""
         impl = self._tools.get_implementation(tool_name)
         if not impl:
             return None, f"Ferramenta '{tool_name}' não tem implementação registrada"

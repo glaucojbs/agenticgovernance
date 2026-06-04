@@ -30,6 +30,24 @@ format:
 test:
 	$(VENV)/bin/pytest tests/ --cov=src/governance --cov-report=term-missing
 
+## stack: sobe a stack Docker (Jaeger + Prometheus + Grafana + OPA)
+stack:
+	docker compose up -d
+	@echo "✓ Stack iniciada:"
+	@echo "  Jaeger  : http://localhost:16686"
+	@echo "  Grafana : http://localhost:3000  (admin/admin)"
+	@echo "  OPA     : http://localhost:8181"
+	@echo "  Prometheus: http://localhost:9090"
+
+## stack-down: derruba a stack Docker
+stack-down:
+	docker compose down
+
+## demo-observability: roda exemplos com OTEL apontando para Jaeger local
+demo-observability:
+	OTEL_EXPORTER=otlp OTEL_ENDPOINT=http://localhost:4318 $(PY) -m examples.02_governed_agent
+	OTEL_EXPORTER=otlp OTEL_ENDPOINT=http://localhost:4318 $(PY) -m examples.05_production_stack
+
 ## demo: roda todos os exemplos em sequência
 demo:
 	@echo "============================================================"
@@ -51,6 +69,11 @@ demo:
 	@echo " EXEMPLO 04 — Ação de alto risco com aprovação humana"
 	@echo "============================================================"
 	$(PY) -m examples.04_high_risk_approval
+	@echo ""
+	@echo "============================================================"
+	@echo " EXEMPLO 05 — Stack de produção (OTEL + Ed25519 + Anomaly + OPA)"
+	@echo "============================================================"
+	$(PY) -m examples.05_production_stack
 
 ## eval: roda o eval gate (falha se qualquer barreira não segurar)
 eval:

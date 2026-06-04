@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Scrape do próprio Prometheus
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Pushgateway para métricas push (aplicação Python)
+  # A aplicação usa o exporter OTLP → Jaeger para traces
+  # e pode expor métricas via prometheus_client se configurado
+  - job_name: "governance-app"
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+    scrape_timeout: 5s
+    honor_labels: true
+
+  # OPA metrics
+  - job_name: "opa"
+    static_configs:
+      - targets: ["opa:8181"]
+    metrics_path: /metrics
