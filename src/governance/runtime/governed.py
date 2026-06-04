@@ -31,6 +31,7 @@ from governance.budget.guard import BudgetExceededError, BudgetGuard
 from governance.identity.models import AgentEnvironment, AgentIdentity
 from governance.policy.engine import ActionRequest, PolicyDecision, PolicyEngine, RiskLevel
 from governance.registry.catalog import AgentRegistry, ToolRegistry
+from governance.runtime.config import GovernanceConfig
 from governance.telemetry.otel import (
     SPAN_ATTR_AGENT_ID,
     SPAN_ATTR_AGENT_NAME,
@@ -44,6 +45,8 @@ from governance.telemetry.otel import (
 
 if TYPE_CHECKING:
     from governance.anomaly.detector import AnomalyDetector
+    from governance.circuit_breaker.breaker import CircuitBreakerRegistry
+    from governance.masking.masker import PIIMasker
 
 
 class ExecutionResult(BaseModel):
@@ -83,19 +86,26 @@ class GovernedAgentRuntime:
         approval_gate: ApprovalGate,
         tool_registry: ToolRegistry,
         agent_registry: AgentRegistry,
+        # Parâmetros legados (retro-compatíveis)
         timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
         telemetry: GovernanceTelemetry | None = None,
         anomaly_detector: AnomalyDetector | None = None,
+        # Novo: configuração opcional agregada
+        config: GovernanceConfig | None = None,
     ) -> None:
+        cfg = config or GovernanceConfig()
         self._policy = policy_engine
         self._audit = audit_logger
         self._budget = budget_guard
         self._approval = approval_gate
         self._tools = tool_registry
         self._agents = agent_registry
-        self._timeout = timeout_seconds
-        self._tel = telemetry
-        self._anomaly = anomaly_detector
+        # Config tem precedência sobre parâmetros legados
+        self._timeout = cfg.timeout_seconds if config else timeout_seconds
+        self._tel = cfg.telemetry if config else telemetry
+        self._anomaly = cfg.anomaly_detector if config else anomaly_detector
+        self._masker: PIIMasker | None = cfg.pii_masker if config else None
+        self._cb_registry: CircuitBreakerRegistry | None = cfg.circuit_breakers if config else None
 
     def execute(
         self,
@@ -157,6 +167,10 @@ class GovernedAgentRuntime:
         span: trace.Span,
     ) -> ExecutionResult:
         """Lógica central de execução — chamada dentro do span raiz."""
+
+        # Aplica PII masking nos parâmetros antes de qualquer auditoria
+        if self._masker and params:
+            params = self._masker.mask_details(params)
 
         # ── 1. Kill switch ────────────────────────────────────────────────────
         try:
@@ -345,7 +359,21 @@ class GovernedAgentRuntime:
                     1, {"agent.id": identity.id, "status": "granted"}
                 )
 
-        # ── 7. Execução com timeout ────────────────────────────────────────────
+        # ── 7. Execução com timeout + circuit breaker ─────────────────────────
+        if self._cb_registry:
+            cb = self._cb_registry.get_or_create(tool_name)
+            if cb.state.value == "open":
+                event = self._audit.log(
+                    AuditEventType.ACTION_DENIED,
+                    agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
+                    environment=identity.environment.value,
+                    details={"reason": f"circuit breaker OPEN para '{tool_name}'"},
+                )
+                return ExecutionResult(
+                    success=False, tool_name=tool_name, agent_id=identity.id,
+                    error=f"Circuit breaker OPEN — ferramenta '{tool_name}' indisponível",
+                    audit_sequence=event.sequence,
+                )
         output, exec_error = self._execute_with_timeout(tool_name, params)
 
         # ── 8. Auditoria do resultado ──────────────────────────────────────────

@@ -109,30 +109,41 @@ graph TD
 
 ```
 src/governance/
-  identity/     — AgentIdentity, escopos, DelegationChain, credenciais
-  policy/       — PolicyEngine YAML (default-deny) + OpaPolicyEngine (OPA client)
-  audit/        — AuditLogger append-only JSONL com hash chain SHA-256
-  signing/      — AuditSigner Ed25519 + SignedAuditLogger
-  approval/     — ApprovalGate HITL + kill switch global
-  budget/       — BudgetGuard (custo, tokens, calls, rate limit)
-  registry/     — ToolRegistry + AgentRegistry (registered/approved/deprecated)
-  runtime/      — GovernedAgentRuntime (orquestra tudo)
-  telemetry/    — OpenTelemetry (spans + métricas, exporters console e OTLP)
-  anomaly/      — AnomalyDetector (velocity, deny rate, consecutive denies, off-hours)
+  identity/       — AgentIdentity, escopos, DelegationChain, credenciais
+  policy/         — PolicyEngine YAML + OpaPolicyEngine + PolicyDryRun + condições temporais
+  audit/          — AuditLogger append-only JSONL com hash chain SHA-256
+  signing/        — AuditSigner Ed25519 + SignedAuditLogger
+  approval/       — ApprovalGate HITL + NApprovalGate (M-de-N) + kill switch global
+  budget/         — BudgetGuard (custo, tokens, calls, rate limit)
+  registry/       — ToolRegistry + AgentRegistry (registered/approved/deprecated)
+  runtime/        — GovernedAgentRuntime + GovernanceConfig (injeção limpa)
+  telemetry/      — OpenTelemetry (spans + métricas, exporters console e OTLP)
+  anomaly/        — AnomalyDetector (velocity, deny rate, consecutive denies, off-hours)
+  masking/        — PIIMasker (e-mail, CPF, JWT, IP, cartão, padrões custom)
+  circuit_breaker/— CircuitBreaker por ferramenta (CLOSED/OPEN/HALF_OPEN)
+  signing/        — AuditSigner Ed25519 + SignedAuditLogger
+  vault/          — SecretStore (TTL, versões, access policy, rotação, audit)
+  forensics/      — IncidentReplayer (timeline, negações consecutivas, resumo)
+  compliance/     — ComplianceReporter (evidências → NIST/ISO/EU AI Act/OWASP)
+  tenancy/        — Tenant + TenantRegistry + TenantRuntime (isolamento multi-tenant)
+  cli/            — CLI operacional (kill-switch, audit, policy, forensics, report)
 
-policies/       — YAML de política (versionados, testáveis, default-deny)
-docker/         — Prometheus, Grafana, OPA configs para make stack
+policies/         — YAML de política (versionados, testáveis, default-deny)
+docker/           — Prometheus, Grafana, OPA configs para make stack
 examples/
-  01_ungoverned_agent/      — anti-exemplo: agente sem nenhum controle
-  02_governed_agent/        — mesmo agente sob governança completa + audit trail
-  03_multi_agent_delegation/— delegação rastreável + escalada de privilégio bloqueada
-  04_high_risk_approval/    — HITL + kill switch de emergência
-  05_production_stack/      — OTEL + Ed25519 + Anomaly + OPA (nível big tech)
+  01_ungoverned_agent/       — anti-exemplo: agente sem nenhum controle
+  02_governed_agent/         — mesmo agente sob governança completa + audit trail
+  03_multi_agent_delegation/ — delegação rastreável + escalada de privilégio bloqueada
+  04_high_risk_approval/     — HITL + kill switch de emergência
+  05_production_stack/       — OTEL + Ed25519 + Anomaly + OPA
+  06_forensics/              — reconstrução de timeline de incidente
+  07_multi_tenant/           — três equipes isoladas + kill switch local e global
+  08_compliance_report/      — PII masking + M-de-N approval + dry-run + evidências
 evals/          — 15 cenários adversariais (eval gate do CI)
 docs/           — 10 documentos pt-BR com diagramas Mermaid
 threat-model/   — STRIDE + OWASP Top 10 LLM/Agentic
 runbooks/       — kill switch, incident response, revogação de credenciais
-tests/          — 96 testes unitários
+tests/          — 124 testes unitários
 ```
 
 Documentação detalhada: [`docs/00-visao-geral.md`](docs/00-visao-geral.md)
@@ -165,6 +176,21 @@ Documentação detalhada: [`docs/00-visao-geral.md`](docs/00-visao-geral.md)
 - [x] Docker Compose: Jaeger, Prometheus, Grafana, OPA
 - [x] Dashboard Grafana pré-configurado (8 painéis de governança)
 - [x] Políticas Rego executáveis no OPA server
+
+### Camada produção (L3–L4) — sem dependências externas
+
+- [x] **PII Masking** — redação automática de e-mail, CPF, JWT, IP, cartão antes de gravar no log
+- [x] **Circuit Breaker** por ferramenta — CLOSED/OPEN/HALF_OPEN com transições auditáveis
+- [x] **GovernanceConfig** — injeção limpa de capacidades opcionais no runtime
+- [x] **N-of-M Approval** — exige M aprovações de um conjunto de N para operações críticas
+- [x] **Policy Dry-run** — compara decisões atual × proposta antes de aplicar mudança
+- [x] **Condições temporais** — políticas que restringem por hora UTC e dia da semana
+- [x] **IncidentReplayer** — reconstrói timeline forense a partir do audit log
+- [x] **ComplianceReporter** — coleta evidências mapeadas a NIST AI RMF / ISO 42001 / EU AI Act
+- [x] **SecretStore simulado** — padrão Vault/KMS com TTL, versões, access policy e rotação
+- [x] **Multi-tenancy** — isolamento completo entre equipes (policy, budget, audit, kill switch)
+- [x] **CLI operacional** — `governance kill-switch`, `audit verify/stats/replay`, `policy eval/dryrun`, `forensics`, `report compliance`
+- [x] 8 exemplos executáveis (01 anti-exemplo → 08 compliance + PII)
 
 ### Compliance e documentação
 

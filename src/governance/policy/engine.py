@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import glob
 import os
+from datetime import UTC
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -65,6 +66,10 @@ class _PolicyRule(BaseModel):
     risk_levels: list[str] = ["*"]
     conditions: dict[str, Any] = {}
     reason: str = ""
+    # Condições temporais (UTC): lista de horas permitidas [0..23]
+    allowed_utc_hours: list[int] = []
+    # Dias da semana permitidos [0=segunda..6=domingo]
+    allowed_weekdays: list[int] = []
 
 
 class PolicyEngine:
@@ -152,6 +157,8 @@ class PolicyEngine:
 
     def _rule_matches(self, rule: _PolicyRule, request: ActionRequest) -> bool:
         """Verifica se uma regra se aplica ao ActionRequest."""
+        from datetime import datetime
+
         # Verifica ferramenta
         if rule.tools != ["*"] and request.tool_name not in rule.tools:
             return False
@@ -168,6 +175,17 @@ class PolicyEngine:
         if rule.scopes_required:
             agent_scope_values = [s.value for s in request.scopes]
             if not all(s in agent_scope_values for s in rule.scopes_required):
+                return False
+
+        # Condições temporais (UTC)
+        if rule.allowed_utc_hours:
+            now = datetime.now(UTC)
+            if now.hour not in rule.allowed_utc_hours:
+                return False
+
+        if rule.allowed_weekdays:
+            now = datetime.now(UTC)
+            if now.weekday() not in rule.allowed_weekdays:
                 return False
 
         # Verifica condições adicionais nos parâmetros

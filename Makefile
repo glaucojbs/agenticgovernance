@@ -74,6 +74,21 @@ demo:
 	@echo " EXEMPLO 05 — Stack de produção (OTEL + Ed25519 + Anomaly + OPA)"
 	@echo "============================================================"
 	$(PY) -m examples.05_production_stack
+	@echo ""
+	@echo "============================================================"
+	@echo " EXEMPLO 06 — Análise Forense de Incidente"
+	@echo "============================================================"
+	$(PY) -m examples.06_forensics
+	@echo ""
+	@echo "============================================================"
+	@echo " EXEMPLO 07 — Plataforma Multi-Tenant"
+	@echo "============================================================"
+	$(PY) -m examples.07_multi_tenant
+	@echo ""
+	@echo "============================================================"
+	@echo " EXEMPLO 08 — Compliance, PII Masking e Dry-run"
+	@echo "============================================================"
+	$(PY) -m examples.08_compliance_report
 
 ## eval: roda o eval gate (falha se qualquer barreira não segurar)
 eval:
