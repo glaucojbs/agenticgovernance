@@ -1,0 +1,91 @@
+# Política para o agente de exemplo com acesso somente-leitura.
+#
+# Princípios aplicados:
+#   - Privilégio mínimo: apenas ferramentas de leitura são permitidas
+#   - Contenção por ambiente: ferramentas destrutivas são negadas em staging/prod
+#   - Risco alto → aprovação: qualquer ferramenta de risco 'high' ou 'critical'
+#     exige aprovação humana, mesmo que o escopo esteja correto
+
+rules:
+
+  # ── DENY explícitos (precedência absoluta) ───────────────────────────────
+
+  - name: deny-delete-always
+    decision: DENY
+    tools:
+      - delete_files
+      - drop_table
+      - wipe_database
+    environments: ["*"]
+    risk_levels: ["*"]
+    reason: >
+      Ferramentas destrutivas são explicitamente negadas por esta política.
+      Use uma política de emergência com aprovação dupla para casos excepcionais.
+
+  - name: deny-secrets-without-scope
+    decision: DENY
+    tools:
+      - read_secrets
+    scopes_required: []
+    environments: ["*"]
+    reason: >
+      Acesso a segredos requer escopo 'read:secrets' concedido explicitamente.
+
+  # ── REQUIRE_APPROVAL para ações de risco alto ────────────────────────────
+
+  - name: require-approval-high-risk
+    decision: REQUIRE_APPROVAL
+    tools: ["*"]
+    risk_levels: ["high", "critical"]
+    environments: ["*"]
+    reason: >
+      Ações de risco alto ou crítico requerem aprovação humana,
+      independentemente do escopo do agente.
+
+  - name: require-approval-send-email
+    decision: REQUIRE_APPROVAL
+    tools:
+      - send_email
+    environments: ["staging", "prod"]
+    scopes_required:
+      - send:email
+    reason: >
+      Envio de e-mail em staging/prod requer aprovação para evitar
+      comunicações acidentais com usuários reais.
+
+  # ── ALLOW para operações de leitura ─────────────────────────────────────
+
+  - name: allow-read-files
+    decision: ALLOW
+    tools:
+      - read_files
+      - list_files
+    scopes_required:
+      - read:files
+    environments: ["dev", "staging", "prod"]
+    risk_levels: ["low", "medium"]
+    reason: >
+      Leitura de arquivos permitida para agentes com escopo 'read:files'.
+
+  - name: allow-read-database
+    decision: ALLOW
+    tools:
+      - query_database
+      - read_database
+    scopes_required:
+      - read:database
+    environments: ["dev", "staging", "prod"]
+    risk_levels: ["low", "medium"]
+    reason: >
+      Consultas de leitura ao banco permitidas para agentes com escopo 'read:database'.
+
+  - name: allow-call-internal-api
+    decision: ALLOW
+    tools:
+      - call_internal_api
+    scopes_required:
+      - call:internal_api
+    environments: ["dev", "staging", "prod"]
+    risk_levels: ["low", "medium"]
+    reason: >
+      Chamadas a APIs internas permitidas para agentes com escopo correto.

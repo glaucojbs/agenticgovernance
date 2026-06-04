@@ -1,0 +1,10 @@
+# Política base: default-deny
+#
+# Esta política não define nenhuma regra ALLOW.
+# Pelo princípio de default-deny do motor, qualquer ação não coberta
+# por uma política ALLOW em outro arquivo será negada.
+#
+# NUNCA remova este arquivo. Se quiser sobrescrever o default-deny
+# para uma ferramenta específica, crie um arquivo de política dedicado.
+
+rules: []
