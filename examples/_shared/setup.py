@@ -7,10 +7,7 @@ Cada exemplo pode chamar build_runtime() e personalizar conforme necessário.
 
 from __future__ import annotations
 
-import os
-import tempfile
 from pathlib import Path
-from typing import Optional
 
 from governance.approval.gate import ApprovalGate
 from governance.audit.logger import AuditLogger
@@ -18,9 +15,7 @@ from governance.budget.guard import BudgetConfig, BudgetGuard
 from governance.identity.models import AgentEnvironment, AgentIdentity, AgentScope
 from governance.policy.engine import PolicyEngine, RiskLevel
 from governance.registry.catalog import (
-    AgentRecord,
     AgentRegistry,
-    AgentStatus,
     ToolDefinition,
     ToolRegistry,
 )
@@ -66,8 +61,8 @@ def build_runtime(
     audit_subdir: str = "default",
     auto_approve: bool = False,
     auto_deny: bool = False,
-    kill_switch_path: Optional[Path] = None,
-    budget_config: Optional[BudgetConfig] = None,
+    kill_switch_path: Path | None = None,
+    budget_config: BudgetConfig | None = None,
     approver_callback=None,
     interactive: bool = False,
 ) -> tuple[GovernedAgentRuntime, AuditLogger, ApprovalGate, ToolRegistry, AgentRegistry]:
@@ -193,7 +188,7 @@ def make_identity(
     owner: str,
     scopes: list[AgentScope],
     environment: AgentEnvironment = AgentEnvironment.DEV,
-    parent_id: Optional[str] = None,
+    parent_id: str | None = None,
     version: str = "1.0.0",
 ) -> AgentIdentity:
     """Cria e autentica uma identidade de agente."""

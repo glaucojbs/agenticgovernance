@@ -2,17 +2,13 @@
 
 from pathlib import Path
 
-import pytest
-
 from governance.approval.gate import ApprovalGate
 from governance.audit.logger import AuditLogger
 from governance.budget.guard import BudgetConfig, BudgetGuard
 from governance.identity.models import AgentEnvironment, AgentIdentity, AgentScope
 from governance.policy.engine import PolicyEngine, RiskLevel
 from governance.registry.catalog import (
-    AgentRecord,
     AgentRegistry,
-    AgentStatus,
     ToolDefinition,
     ToolRegistry,
 )

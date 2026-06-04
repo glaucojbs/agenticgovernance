@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from governance.identity.models import AgentCredential, AgentIdentity, AgentScope
 
 
@@ -26,7 +24,7 @@ class IdentityManager:
         self._identities[identity.id] = identity
         return identity
 
-    def get(self, agent_id: str) -> Optional[AgentIdentity]:
+    def get(self, agent_id: str) -> AgentIdentity | None:
         return self._identities.get(agent_id)
 
     def revoke(self, agent_id: str, reason: str = "manual revocation") -> None:

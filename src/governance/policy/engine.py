@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import glob
 import os
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 from pydantic import BaseModel
@@ -19,14 +19,14 @@ from pydantic import BaseModel
 from governance.identity.models import AgentEnvironment, AgentScope
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
 
-class PolicyDecision(str, Enum):
+class PolicyDecision(StrEnum):
     ALLOW = "ALLOW"
     DENY = "DENY"
     REQUIRE_APPROVAL = "REQUIRE_APPROVAL"
@@ -50,8 +50,8 @@ class PolicyResult(BaseModel):
 
     decision: PolicyDecision
     reason: str
-    matched_rule: Optional[str] = None
-    policy_file: Optional[str] = None
+    matched_rule: str | None = None
+    policy_file: str | None = None
 
 
 class _PolicyRule(BaseModel):
@@ -103,8 +103,8 @@ class PolicyEngine:
 
     def evaluate(self, request: ActionRequest) -> PolicyResult:
         """Avalia um ActionRequest e retorna a decisão de política."""
-        deny_result: Optional[PolicyResult] = None
-        approval_result: Optional[PolicyResult] = None
+        deny_result: PolicyResult | None = None
+        approval_result: PolicyResult | None = None
 
         for filename, rule in self._rules:
             if not self._rule_matches(rule, request):
@@ -193,12 +193,10 @@ class PolicyEngine:
                         return False
                 except (TypeError, ValueError):
                     pass
-            if "not_in" in constraint and value is not None:
-                if value in constraint["not_in"]:
-                    return False
-            if "in" in constraint and value is not None:
-                if value not in constraint["in"]:
-                    return False
+            if "not_in" in constraint and value is not None and value in constraint["not_in"]:
+                return False
+            if "in" in constraint and value is not None and value not in constraint["in"]:
+                return False
         elif isinstance(constraint, list):
             if value not in constraint:
                 return False

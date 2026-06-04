@@ -1,3 +1,3 @@
-from governance.audit.logger import AuditLogger, AuditEvent, AuditEventType
+from governance.audit.logger import AuditEvent, AuditEventType, AuditLogger
 
 __all__ = ["AuditLogger", "AuditEvent", "AuditEventType"]

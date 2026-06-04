@@ -1,3 +1,3 @@
-from governance.approval.gate import ApprovalGate, ApprovalRequest, ApprovalDecision
+from governance.approval.gate import ApprovalDecision, ApprovalGate, ApprovalRequest
 
 __all__ = ["ApprovalGate", "ApprovalRequest", "ApprovalDecision"]

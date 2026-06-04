@@ -1,7 +1,6 @@
 """Testes para o audit logger com hash encadeado."""
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest

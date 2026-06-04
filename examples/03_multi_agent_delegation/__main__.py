@@ -140,7 +140,6 @@ def run() -> None:
     print_result("ReportAgent → delete_files (sem escopo + destrutivo)", result)
 
     print("\n  Teste D: Tentativa de delegar escopo que o agente não possui")
-    import traceback
     try:
         # DataFetcher não tem send:email, portanto não pode delegar
         chain.add_link(

@@ -18,8 +18,7 @@ from __future__ import annotations
 
 import secrets
 import threading
-from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -28,7 +27,7 @@ from governance.audit.logger import AuditEventType, AuditLogger
 from governance.budget.guard import BudgetExceededError, BudgetGuard
 from governance.identity.models import AgentEnvironment, AgentIdentity
 from governance.policy.engine import ActionRequest, PolicyDecision, PolicyEngine, RiskLevel
-from governance.registry.catalog import AgentRegistry, AgentStatus, ToolRegistry
+from governance.registry.catalog import AgentRegistry, ToolRegistry
 
 
 class ExecutionResult(BaseModel):
@@ -37,10 +36,10 @@ class ExecutionResult(BaseModel):
     success: bool
     tool_name: str
     agent_id: str
-    output: Optional[Any] = None
-    error: Optional[str] = None
-    policy_decision: Optional[str] = None
-    audit_sequence: Optional[int] = None
+    output: Any | None = None
+    error: str | None = None
+    policy_decision: str | None = None
+    audit_sequence: int | None = None
 
 
 class GovernanceError(Exception):
@@ -80,8 +79,8 @@ class GovernedAgentRuntime:
         self,
         identity: AgentIdentity,
         tool_name: str,
-        parameters: Optional[dict[str, Any]] = None,
-        risk_level: Optional[RiskLevel] = None,
+        parameters: dict[str, Any] | None = None,
+        risk_level: RiskLevel | None = None,
     ) -> ExecutionResult:
         """
         Ponto de entrada único para execução de ferramentas.
@@ -127,8 +126,9 @@ class GovernedAgentRuntime:
             )
 
         # ── 3. Ciclo de vida no registry (prod exige agente approved) ─────────
-        if identity.environment == AgentEnvironment.PROD:
-            if not self._agents.can_run_in_prod(identity.id):
+        if identity.environment == AgentEnvironment.PROD and not self._agents.can_run_in_prod(
+            identity.id
+        ):
                 record = self._agents.get(identity.id)
                 status = record.status.value if record else "não cadastrado"
                 self._audit.log(
@@ -312,14 +312,14 @@ class GovernedAgentRuntime:
         tool_name: str,
         params: dict[str, Any],
         identity: AgentIdentity,
-    ) -> tuple[Any, Optional[str]]:
+    ) -> tuple[Any, str | None]:
         """Executa a ferramenta com timeout via thread."""
         impl = self._tools.get_implementation(tool_name)
         if not impl:
             return None, f"Ferramenta '{tool_name}' não tem implementação registrada"
 
         result_holder: list[Any] = [None]
-        error_holder: list[Optional[str]] = [None]
+        error_holder: list[str | None] = [None]
 
         def _run() -> None:
             try:

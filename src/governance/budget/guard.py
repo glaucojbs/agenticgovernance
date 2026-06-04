@@ -9,8 +9,7 @@ próxima ação e registra o evento de auditoria.
 from __future__ import annotations
 
 from collections import deque
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
@@ -36,10 +35,10 @@ class BudgetStatus(BaseModel):
     total_tokens: int = 0
     total_calls: int = 0
     last_reset: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     blocked: bool = False
-    block_reason: Optional[str] = None
+    block_reason: str | None = None
 
 
 class BudgetExceededError(Exception):
@@ -58,7 +57,7 @@ class BudgetGuard:
     Mantém contadores em memória; em produção, persistir em Redis ou banco.
     """
 
-    def __init__(self, config: Optional[BudgetConfig] = None) -> None:
+    def __init__(self, config: BudgetConfig | None = None) -> None:
         self._config = config or BudgetConfig()
         self._statuses: dict[str, BudgetStatus] = {}
         # Janela deslizante de timestamps das chamadas (para rate limiting)
@@ -73,8 +72,8 @@ class BudgetGuard:
     def check_and_consume(
         self,
         agent_id: str,
-        cost_usd: Optional[float] = None,
-        tokens: Optional[int] = None,
+        cost_usd: float | None = None,
+        tokens: int | None = None,
     ) -> BudgetStatus:
         """
         Verifica se a próxima ação cabe no orçamento e registra o consumo.
@@ -86,7 +85,7 @@ class BudgetGuard:
 
         call_cost = cost_usd if cost_usd is not None else cfg.default_cost_per_call_usd
         call_tokens = tokens if tokens is not None else cfg.default_tokens_per_call
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Verifica custo
         if status.total_cost_usd + call_cost > cfg.max_cost_usd:
@@ -139,7 +138,7 @@ class BudgetGuard:
         status.block_reason = None
         return status
 
-    def get_status(self, agent_id: str) -> Optional[BudgetStatus]:
+    def get_status(self, agent_id: str) -> BudgetStatus | None:
         return self._statuses.get(agent_id)
 
     def reset(self, agent_id: str) -> None:

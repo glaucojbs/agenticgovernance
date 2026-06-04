@@ -1,3 +1,3 @@
-from governance.runtime.governed import GovernedAgentRuntime, ExecutionResult
+from governance.runtime.governed import ExecutionResult, GovernedAgentRuntime
 
 __all__ = ["GovernedAgentRuntime", "ExecutionResult"]

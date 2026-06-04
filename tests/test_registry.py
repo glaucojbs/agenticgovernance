@@ -7,7 +7,6 @@ from governance.policy.engine import RiskLevel
 from governance.registry.catalog import (
     AgentRecord,
     AgentRegistry,
-    AgentStatus,
     ToolDefinition,
     ToolRegistry,
 )

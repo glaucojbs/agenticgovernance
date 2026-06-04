@@ -10,9 +10,10 @@ Só agentes 'approved' podem operar em 'prod'.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -30,15 +31,15 @@ class ToolDefinition(BaseModel):
     is_destructive: bool = False
     is_reversible: bool = True
     allowed_environments: list[AgentEnvironment] = Field(
-        default_factory=lambda: [AgentEnvironment.DEV, AgentEnvironment.STAGING, AgentEnvironment.PROD]
+        default_factory=lambda: list(AgentEnvironment)
     )
-    max_calls_per_session: Optional[int] = None
+    max_calls_per_session: int | None = None
 
 
-class AgentStatus(str, Enum):
-    REGISTERED = "registered"   # recém-cadastrado, ainda não avaliado
-    APPROVED = "approved"       # passou pelo eval gate, pode rodar em prod
-    DEPRECATED = "deprecated"   # não deve ser instanciado
+class AgentStatus(StrEnum):
+    REGISTERED = "registered"
+    APPROVED = "approved"
+    DEPRECATED = "deprecated"
 
 
 class AgentRecord(BaseModel):
@@ -51,11 +52,11 @@ class AgentRecord(BaseModel):
     owner: str
     description: str = ""
     registered_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
-    approved_at: Optional[str] = None
-    deprecated_at: Optional[str] = None
-    eval_report: Optional[str] = None  # URL ou referência ao relatório de eval
+    approved_at: str | None = None
+    deprecated_at: str | None = None
+    eval_report: str | None = None  # URL ou referência ao relatório de eval
 
 
 class ToolRegistry:
@@ -69,16 +70,16 @@ class ToolRegistry:
     def register(
         self,
         definition: ToolDefinition,
-        implementation: Optional[Callable[..., Any]] = None,
+        implementation: Callable[..., Any] | None = None,
     ) -> None:
         self._tools[definition.name] = definition
         if implementation:
             self._implementations[definition.name] = implementation
 
-    def get(self, name: str) -> Optional[ToolDefinition]:
+    def get(self, name: str) -> ToolDefinition | None:
         return self._tools.get(name)
 
-    def get_implementation(self, name: str) -> Optional[Callable[..., Any]]:
+    def get_implementation(self, name: str) -> Callable[..., Any] | None:
         return self._implementations.get(name)
 
     def list_tools(self) -> list[ToolDefinition]:
@@ -105,10 +106,10 @@ class AgentRegistry:
         self._agents[record.agent_id] = record
         return record
 
-    def approve(self, agent_id: str, eval_report: Optional[str] = None) -> AgentRecord:
+    def approve(self, agent_id: str, eval_report: str | None = None) -> AgentRecord:
         record = self._get_or_raise(agent_id)
         record.status = AgentStatus.APPROVED
-        record.approved_at = datetime.now(timezone.utc).isoformat()
+        record.approved_at = datetime.now(UTC).isoformat()
         if eval_report:
             record.eval_report = eval_report
         return record
@@ -116,7 +117,7 @@ class AgentRegistry:
     def deprecate(self, agent_id: str) -> AgentRecord:
         record = self._get_or_raise(agent_id)
         record.status = AgentStatus.DEPRECATED
-        record.deprecated_at = datetime.now(timezone.utc).isoformat()
+        record.deprecated_at = datetime.now(UTC).isoformat()
         return record
 
     def can_run_in_prod(self, agent_id: str) -> bool:
@@ -124,7 +125,7 @@ class AgentRegistry:
         record = self._agents.get(agent_id)
         return record is not None and record.status == AgentStatus.APPROVED
 
-    def get(self, agent_id: str) -> Optional[AgentRecord]:
+    def get(self, agent_id: str) -> AgentRecord | None:
         return self._agents.get(agent_id)
 
     def list_agents(self) -> list[AgentRecord]:

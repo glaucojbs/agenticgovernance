@@ -1,12 +1,12 @@
+from governance.identity.manager import IdentityManager
 from governance.identity.models import (
+    AgentCredential,
+    AgentEnvironment,
     AgentIdentity,
     AgentScope,
-    AgentEnvironment,
-    DelegationLink,
     DelegationChain,
-    AgentCredential,
+    DelegationLink,
 )
-from governance.identity.manager import IdentityManager
 
 __all__ = [
     "AgentIdentity",

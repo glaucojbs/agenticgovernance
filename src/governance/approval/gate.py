@@ -12,15 +12,16 @@ bloqueadas, independentemente de política ou aprovação.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
-from enum import Enum
+from collections.abc import Callable
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class ApprovalDecision(str, Enum):
+class ApprovalDecision(StrEnum):
     GRANTED = "GRANTED"
     DENIED = "DENIED"
     PENDING = "PENDING"
@@ -37,12 +38,12 @@ class ApprovalRequest(BaseModel):
     risk_level: str
     reason: str  # motivo pelo qual a aprovação é necessária
     requested_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     decision: ApprovalDecision = ApprovalDecision.PENDING
-    decided_at: Optional[str] = None
-    decided_by: Optional[str] = None
-    decision_notes: Optional[str] = None
+    decided_at: str | None = None
+    decided_by: str | None = None
+    decision_notes: str | None = None
 
 
 # Tipo para o callback do aprovador: recebe ApprovalRequest, retorna (bool, str)
@@ -71,7 +72,7 @@ class ApprovalGate:
         kill_switch_path: str | Path = ".kill_switch",
         auto_approve: bool = False,
         auto_deny: bool = False,
-        approver_callback: Optional[ApproverCallback] = None,
+        approver_callback: ApproverCallback | None = None,
         interactive: bool = False,
     ) -> None:
         self._kill_switch_path = Path(kill_switch_path)
@@ -88,7 +89,7 @@ class ApprovalGate:
     def activate_kill_switch(self, reason: str = "activated by operator") -> None:
         """Ativa o kill switch, impedindo toda execução de agentes."""
         self._kill_switch_path.write_text(
-            f"{datetime.now(timezone.utc).isoformat()} | {reason}\n"
+            f"{datetime.now(UTC).isoformat()} | {reason}\n"
         )
 
     def deactivate_kill_switch(self) -> None:
@@ -116,7 +117,9 @@ class ApprovalGate:
             return self._record_decision(approval_req, False, "auto-denied (configuração de teste)")
 
         if self._auto_approve:
-            return self._record_decision(approval_req, True, "auto-approved (configuração de teste)")
+            return self._record_decision(
+                approval_req, True, "auto-approved (configuração de teste)"
+            )
 
         if self._approver_callback:
             approved, notes = self._approver_callback(approval_req)
@@ -152,7 +155,7 @@ class ApprovalGate:
         self, req: ApprovalRequest, approved: bool, notes: str
     ) -> ApprovalRequest:
         req.decision = ApprovalDecision.GRANTED if approved else ApprovalDecision.DENIED
-        req.decided_at = datetime.now(timezone.utc).isoformat()
+        req.decided_at = datetime.now(UTC).isoformat()
         req.decided_by = "human_approver"
         req.decision_notes = notes
         return req

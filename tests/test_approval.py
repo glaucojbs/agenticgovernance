@@ -1,7 +1,5 @@
 """Testes para o approval gate e kill switch."""
 
-import os
-import tempfile
 from pathlib import Path
 
 import pytest

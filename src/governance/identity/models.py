@@ -8,20 +8,19 @@ A cadeia de delegação rastreia toda transferência de autoridade.
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timedelta, timezone
-from enum import Enum
-from typing import Optional
+from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
 
 
-class AgentEnvironment(str, Enum):
+class AgentEnvironment(StrEnum):
     DEV = "dev"
     STAGING = "staging"
     PROD = "prod"
 
 
-class AgentScope(str, Enum):
+class AgentScope(StrEnum):
     """Escopos de capacidade que podem ser concedidos a um agente."""
 
     READ_FILES = "read:files"
@@ -49,14 +48,14 @@ class AgentCredential(BaseModel):
     """Token de curta duração emitido para um agente autenticar-se no runtime."""
 
     token: str = Field(default_factory=lambda: secrets.token_hex(32))
-    issued_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    issued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime
     revoked: bool = False
-    revoked_at: Optional[datetime] = None
-    revoked_reason: Optional[str] = None
+    revoked_at: datetime | None = None
+    revoked_reason: str | None = None
 
     @model_validator(mode="after")
-    def validate_expiry(self) -> "AgentCredential":
+    def validate_expiry(self) -> AgentCredential:
         if self.expires_at <= self.issued_at:
             raise ValueError("expires_at must be after issued_at")
         return self
@@ -65,11 +64,11 @@ class AgentCredential(BaseModel):
         """Retorna True se o token ainda é válido (não expirado e não revogado)."""
         if self.revoked:
             return False
-        return datetime.now(timezone.utc) < self.expires_at
+        return datetime.now(UTC) < self.expires_at
 
     def revoke(self, reason: str = "manual revocation") -> None:
         self.revoked = True
-        self.revoked_at = datetime.now(timezone.utc)
+        self.revoked_at = datetime.now(UTC)
         self.revoked_reason = reason
 
 
@@ -85,10 +84,10 @@ class AgentIdentity(BaseModel):
     owner: str  # e-mail ou ID do humano responsável
     environment: AgentEnvironment
     scopes: list[AgentScope] = Field(default_factory=list)
-    parent_id: Optional[str] = None  # ID do agente pai, quando sub-agente
+    parent_id: str | None = None  # ID do agente pai, quando sub-agente
     version: str = "1.0.0"
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    credential: Optional[AgentCredential] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    credential: AgentCredential | None = None
 
     def has_scope(self, scope: AgentScope) -> bool:
         return scope in self.scopes
@@ -99,7 +98,7 @@ class AgentIdentity(BaseModel):
     def issue_credential(self, ttl_seconds: int = 3600) -> AgentCredential:
         """Emite um novo token de curta duração para este agente."""
         cred = AgentCredential(
-            expires_at=datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
+            expires_at=datetime.now(UTC) + timedelta(seconds=ttl_seconds)
         )
         self.credential = cred
         return cred
@@ -121,7 +120,7 @@ class DelegationLink(BaseModel):
     to_id: str  # quem recebeu a delegação
     to_name: str
     delegated_scopes: list[AgentScope]
-    delegated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    delegated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     reason: str = ""
 
     def __str__(self) -> str:

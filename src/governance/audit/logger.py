@@ -9,18 +9,19 @@ Formato: JSONL (uma linha JSON por evento), gravado em append mode.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class AuditEventType(str, Enum):
+class AuditEventType(StrEnum):
     POLICY_DECISION = "policy_decision"
     ACTION_EXECUTED = "action_executed"
     ACTION_DENIED = "action_denied"
@@ -43,10 +44,10 @@ class AuditEvent(BaseModel):
     sequence: int
     event_type: AuditEventType
     timestamp: str  # ISO 8601 UTC
-    agent_id: Optional[str] = None
-    agent_name: Optional[str] = None
-    tool_name: Optional[str] = None
-    environment: Optional[str] = None
+    agent_id: str | None = None
+    agent_name: str | None = None
+    tool_name: str | None = None
+    environment: str | None = None
     details: dict[str, Any] = Field(default_factory=dict)
     previous_hash: str  # hash da entrada anterior (ou "GENESIS" para a primeira)
     entry_hash: str = ""  # preenchido pelo logger após construção
@@ -61,8 +62,8 @@ class AuditEvent(BaseModel):
 class ChainVerificationResult(BaseModel):
     valid: bool
     total_entries: int
-    first_broken_at: Optional[int] = None
-    error: Optional[str] = None
+    first_broken_at: int | None = None
+    error: str | None = None
 
 
 class AuditLogger:
@@ -105,18 +106,18 @@ class AuditLogger:
     def log(
         self,
         event_type: AuditEventType,
-        agent_id: Optional[str] = None,
-        agent_name: Optional[str] = None,
-        tool_name: Optional[str] = None,
-        environment: Optional[str] = None,
-        details: Optional[dict[str, Any]] = None,
+        agent_id: str | None = None,
+        agent_name: str | None = None,
+        tool_name: str | None = None,
+        environment: str | None = None,
+        details: dict[str, Any] | None = None,
     ) -> AuditEvent:
         """Registra um evento na trilha de auditoria."""
         self._sequence += 1
         event = AuditEvent(
             sequence=self._sequence,
             event_type=event_type,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             agent_id=agent_id,
             agent_name=agent_name,
             tool_name=tool_name,
@@ -146,7 +147,7 @@ class AuditLogger:
             return ChainVerificationResult(valid=True, total_entries=0)
 
         expected_prev = self.GENESIS_HASH
-        for i, event in enumerate(entries):
+        for event in entries:
             if event.previous_hash != expected_prev:
                 return ChainVerificationResult(
                     valid=False,
@@ -183,10 +184,8 @@ class AuditLogger:
             for line in f:
                 line = line.strip()
                 if line:
-                    try:
+                    with contextlib.suppress(Exception):
                         entries.append(AuditEvent(**json.loads(line)))
-                    except Exception:
-                        pass
         return entries
 
     def replay(self) -> list[AuditEvent]:

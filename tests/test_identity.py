@@ -1,10 +1,10 @@
 """Testes para o subsistema de identidade."""
 
-import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from governance.identity.manager import IdentityManager
 from governance.identity.models import (
     AgentCredential,
     AgentEnvironment,
@@ -12,7 +12,6 @@ from governance.identity.models import (
     AgentScope,
     DelegationChain,
 )
-from governance.identity.manager import IdentityManager
 
 
 def make_identity(
@@ -34,7 +33,7 @@ def make_identity(
 class TestAgentCredential:
     def test_fresh_credential_is_valid(self) -> None:
         cred = AgentCredential(
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
+            expires_at=datetime.now(UTC) + timedelta(hours=1)
         )
         assert cred.is_valid()
 
@@ -42,15 +41,15 @@ class TestAgentCredential:
         # Cria credencial já expirada ignorando a validação de construção
         cred = AgentCredential.model_construct(
             token="test-token",
-            issued_at=datetime.now(timezone.utc) - timedelta(hours=2),
-            expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+            issued_at=datetime.now(UTC) - timedelta(hours=2),
+            expires_at=datetime.now(UTC) - timedelta(hours=1),
             revoked=False,
         )
         assert not cred.is_valid()
 
     def test_revoked_credential_is_invalid(self) -> None:
         cred = AgentCredential(
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
+            expires_at=datetime.now(UTC) + timedelta(hours=1)
         )
         cred.revoke("test")
         assert not cred.is_valid()
@@ -59,7 +58,7 @@ class TestAgentCredential:
     def test_invalid_expiry_raises(self) -> None:
         with pytest.raises(ValueError):
             AgentCredential(
-                expires_at=datetime.now(timezone.utc) - timedelta(hours=2)
+                expires_at=datetime.now(UTC) - timedelta(hours=2)
             )
 
 
