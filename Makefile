@@ -55,8 +55,7 @@ demo:
 ## eval: roda o eval gate (falha se qualquer barreira não segurar)
 eval:
 	@echo "Rodando eval gate..."
-	$(PY) evals/run_evals.py
-	@echo "✓ Todos os cenários de avaliação passaram."
+	PYTHONPATH=$(PWD) $(PY) evals/run_evals.py
 
 ## clean: remove artefatos gerados
 clean:
