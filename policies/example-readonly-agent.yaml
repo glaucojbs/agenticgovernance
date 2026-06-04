@@ -89,3 +89,15 @@ rules:
     risk_levels: ["low", "medium"]
     reason: >
       Chamadas a APIs internas permitidas para agentes com escopo correto.
+
+  - name: allow-send-email-dev
+    decision: ALLOW
+    tools:
+      - send_email
+    scopes_required:
+      - send:email
+    environments: ["dev"]
+    risk_levels: ["low", "medium"]
+    reason: >
+      Envio de e-mail em dev permitido sem aprovação (ambiente não-produtivo).
+      Em staging/prod, a regra require-approval-send-email tem precedência.
