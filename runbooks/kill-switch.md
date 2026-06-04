@@ -1,6 +1,6 @@
 # Runbook — Kill Switch Global
 
-**Versão:** 1.0  
+**Versão:** 1.1  
 **Audiência:** Time de operações, SREs
 
 ---
@@ -31,13 +31,23 @@ O custo de uma parada falsa é muito menor que o custo de uma ação destrutiva 
 
 ## Ativação
 
-### Método 1 — Linha de comando (mais rápido)
+### Método 1 — CLI (método preferido)
+
+```bash
+# Ativa com motivo registrado
+governance kill-switch enable "P0: incidente de segurança — [descrever]"
+
+# Verifica status
+governance kill-switch status
+```
+
+### Método 2 — Linha de comando direta (mais rápido, sem CLI)
 
 ```bash
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | [motivo do incidente]" > .kill_switch
 ```
 
-### Método 2 — Python
+### Método 3 — Python
 
 ```python
 from governance.approval.gate import ApprovalGate
@@ -48,15 +58,11 @@ gate.activate_kill_switch("P0: incidente de segurança — [descrever]")
 ### Verificação
 
 ```bash
-# O arquivo deve existir e conter o motivo
-cat .kill_switch
+# Via CLI
+governance kill-switch status
 
-# Teste rápido via Python
-python3 -c "
-from governance.approval.gate import ApprovalGate
-gate = ApprovalGate()
-print('Kill switch ativo:', gate.is_kill_switch_active())
-"
+# Arquivo direto (deve existir e conter o motivo)
+cat .kill_switch
 ```
 
 ---
@@ -78,18 +84,24 @@ O evento é registrado na trilha de auditoria como `kill_switch_triggered`.
 ## Desativação
 
 **Só desative após confirmar que:**
-1. O agente problemático foi identificado
+1. O agente problemático foi identificado (use `governance forensics`)
 2. As credenciais foram revogadas (se necessário)
 3. A política foi atualizada para prevenir recorrência
 4. Um humano responsável autorizou a retomada
 
-### Método 1 — Linha de comando
+### Método 1 — CLI
+
+```bash
+governance kill-switch disable
+```
+
+### Método 2 — Linha de comando direta
 
 ```bash
 rm .kill_switch
 ```
 
-### Método 2 — Python
+### Método 3 — Python
 
 ```python
 gate.deactivate_kill_switch()
@@ -100,15 +112,14 @@ gate.deactivate_kill_switch()
 ## Diagnóstico pós-ativação
 
 ```bash
-# Ver os últimos eventos de kill switch no log
-python3 -c "
-import json
-with open('audit_logs/producao/audit.jsonl') as f:
-    for line in f:
-        event = json.loads(line)
-        if 'kill_switch' in event['event_type']:
-            print(event['timestamp'], event['event_type'], event.get('agent_id'))
-"
+# Via CLI — replay filtrado por tipo de evento
+governance audit replay audit_logs/producao/audit.jsonl | grep kill_switch
+
+# Via CLI — estatísticas do log
+governance audit stats audit_logs/producao/audit.jsonl
+
+# Reconstituição forense completa
+governance forensics audit_logs/producao/audit.jsonl
 ```
 
 ---

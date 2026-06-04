@@ -1,7 +1,7 @@
 # Modelo de Ameaça — Sistema de Governança Agêntica
 
-**Versão:** 1.0  
-**Data:** 2025-06-01  
+**Versão:** 2.0  
+**Data:** 2026-06-04  
 **Metodologia:** STRIDE + OWASP Top 10 for LLM/Agentic Applications
 
 ---
@@ -59,11 +59,11 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 
 | Ameaça | Cenário | Mitigação | Risco residual |
 |--------|---------|-----------|---------------|
-| T1 | Adulteração do audit log | Hash chain SHA-256; verify_chain() | Médio* |
+| T1 | Adulteração do audit log | Hash chain SHA-256 + assinatura **Ed25519** por entrada | Baixo* |
 | T2 | Modificação de arquivo de política | Git history; CI valida as políticas | Baixo |
 | T3 | Modificação do arquivo .kill_switch | Permissões de SO; monitoramento | Médio |
 
-\* Um atacante com acesso ao disco pode recriar toda a cadeia (sem assinatura assimétrica).
+\* Com `SignedAuditLogger`: sem a chave privada, impossível recriar assinaturas válidas. Em produção, manter chave no KMS/HSM.
 
 ### R — Repudiation (Repúdio)
 
@@ -78,11 +78,11 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 
 | Ameaça | Cenário | Mitigação | Risco residual |
 |--------|---------|-----------|---------------|
-| I1 | Agente extrai segredos via tool chaining | `read:secrets` como escopo separado | Baixo |
-| I2 | Audit log expõe dados sensíveis nos parâmetros | `output_preview` truncado a 200 chars | Médio* |
+| I1 | Agente extrai segredos via tool chaining | `read:secrets` como escopo separado + `SecretStore` com access policy | Baixo |
+| I2 | Audit log expõe dados pessoais nos parâmetros | **PIIMasker** aplicado antes de gravar (e-mail, CPF, JWT, IP, cartão) | Baixo* |
 | I3 | Prompt injection revela configuração interna | Runtime não expõe config ao agente | Baixo |
 
-\* Os parâmetros das ações ficam no log. Considere mascaramento em produção.
+\* Com `PIIMasker.with_defaults()` ativo no `GovernanceConfig`. Adicionar padrões customizados para dados específicos do domínio.
 
 ### D — Denial of Service (Negação de serviço)
 
@@ -92,6 +92,7 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 | D2 | Agente spawna sub-agentes infinitos | `spawn:subagent` é escopo explícito | Baixo |
 | D3 | Ferramenta fica pendurada (hang) | Timeout configurável no runtime | Baixo |
 | D4 | Flooding de pedidos de aprovação | Rate limit por minuto no BudgetGuard | Baixo |
+| D5 | Ferramenta com falhas cascateia para outros agentes | **CircuitBreaker** por ferramenta (OPEN após N falhas) | Baixo |
 
 ### E — Elevation of Privilege (Escalada de privilégio)
 
@@ -101,6 +102,7 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 | E2 | Agente em dev cria agente em prod | Ambiente é parte da identidade; registry valida | Baixo |
 | E3 | Agente manipula motor de política via parâmetros | Engine é stateless; parâmetros são dados, não código | Baixo |
 | E4 | Agente `registered` opera em prod | Registry verifica status APPROVED antes de prod | Muito baixo |
+| E5 | Agente de tenant A acessa recursos de tenant B | **TenantRuntime** verifica pertencimento antes de executar | Muito baixo |
 
 ---
 
@@ -136,19 +138,29 @@ só pode fazer o que foi explicitamente autorizado.
 
 ---
 
-## Mitigações não implementadas neste repositório
+## Mitigações implementadas neste repositório (v2)
+
+| Ameaça anterior | Mitigação implementada |
+|----------------|----------------------|
+| T1 — adulteração de log | ✅ `SignedAuditLogger` + Ed25519 (`src/governance/signing/`) |
+| I2 — dados pessoais no log | ✅ `PIIMasker` com padrões built-in + custom (`src/governance/masking/`) |
+| D5 — cascata de falhas | ✅ `CircuitBreaker` por ferramenta (`src/governance/circuit_breaker/`) |
+| E5 — isolamento multi-tenant | ✅ `TenantRuntime` + `Tenant` (`src/governance/tenancy/`) |
+
+## Mitigações ainda não implementadas neste repositório
 
 | Ameaça | Mitigação recomendada para produção |
 |--------|-------------------------------------|
-| T1 (adulteração de log) | Assinatura Ed25519 + WORM storage |
-| S3 (spoofing entre processos) | SPIFFE/SVID com workload identity |
-| I2 (dados sensíveis no log) | Mascaramento de PII antes de gravar |
-| R2 (repúdio de aprovações) | Assinatura criptográfica do aprovador |
+| S3 (spoofing entre processos) | SPIFFE/SVID com workload identity (SPIRE) |
+| T1 (chave de signing em disco) | Migrar chave Ed25519 para AWS KMS / GCP KMS / Vault Transit |
+| T3 (kill switch file mutável) | Permissões de SO restritivas; monitoramento de integridade de arquivo |
+| R2 (repúdio de aprovações M-de-N) | Assinatura criptográfica de cada voto do aprovador |
 
 ---
 
 ## Declaração de risco residual
 
-Este repositório é uma **implementação de referência educacional**. Para uso em
-produção com dados reais, as mitigações marcadas como "Médio" acima devem ser
-endereçadas antes do deploy.
+Este repositório é uma **implementação de referência educacional**. Com as mitigações
+da v2 (Ed25519, PIIMasker, CircuitBreaker, multi-tenancy), o risco residual foi
+reduzido significativamente. Para uso em produção com dados reais, os itens da
+tabela acima devem ser endereçados antes do deploy em ambientes regulados.

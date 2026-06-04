@@ -10,7 +10,9 @@
 
 Este repositório implementa o modelo **HITL** para ações de alto risco.
 
-## Fluxo de aprovação
+## Aprovação simples (ApprovalGate)
+
+Fluxo para ações `REQUIRE_APPROVAL` com um único aprovador:
 
 ```mermaid
 sequenceDiagram
@@ -29,13 +31,11 @@ sequenceDiagram
     RT->>AU: log(action_executed)
 ```
 
-## Configuração do aprovador
-
 ```python
-# Modo interativo (terminal) — para uso em produção supervisionada
+# Modo interativo (terminal)
 gate = ApprovalGate(interactive=True)
 
-# Callback customizado (webhook, Slack, PagerDuty)
+# Callback customizado (webhook Slack, PagerDuty)
 def slack_approver(req: ApprovalRequest) -> tuple[bool, str]:
     response = send_slack_approval_request(req)
     return response.approved, response.notes
@@ -46,55 +46,105 @@ gate = ApprovalGate(approver_callback=slack_approver)
 gate = ApprovalGate(auto_approve=True)
 ```
 
-## Kill switch global
+## Aprovação M-de-N (NApprovalGate)
 
-O kill switch é um **mecanismo de parada de emergência** que bloqueia toda execução
-de agentes imediatamente, sem necessidade de alterar políticas ou código.
-
-### Quando usar
-
-- Incidente de segurança detectado envolvendo um agente
-- Comportamento anômalo não coberto por política
-- Manutenção emergencial do sistema
-- Comprometimento de credenciais de agente
-
-### Como funciona
+Para operações críticas que exigem consenso de múltiplos aprovadores — ex.:
+wipe de banco de dados em produção, deploy de mudança urgente, rotação massiva
+de credenciais:
 
 ```python
-# Ativar: cria o arquivo .kill_switch com timestamp e motivo
-approval_gate.activate_kill_switch("incidente P0 — vazamento de dados detectado")
+from governance.approval.multi import NApprovalGate
 
-# O runtime verifica o arquivo antes de qualquer ação
-# → KillSwitchActiveError é levantado → ação bloqueada → auditada
+# Requer 2 de 3 aprovadores
+gate = NApprovalGate(
+    required_approvals=2,
+    available_approvers=["senior-eng-1", "senior-eng-2", "security-eng"],
+    timeout_seconds=300,      # auto-deny após 5 min sem resposta
+    approver_callbacks=[      # um callback por aprovador
+        pagerduty_callback,
+        slack_dm_callback,
+    ],
+)
 
-# Desativar: remove o arquivo
-approval_gate.deactivate_kill_switch()
+req = gate.request_approval(
+    agent_id="ops-agent",
+    agent_name="OpsAgent",
+    tool_name="wipe_database",
+    parameters={"confirm": "yes"},
+    risk_level="critical",
+    reason="migração emergencial de dados",
+)
+
+if req.is_granted:
+    print(f"Aprovado! {req.vote_summary()}")
+else:
+    print(f"Negado. {req.vote_summary()}")
 ```
 
-O arquivo `.kill_switch` pode ser criado diretamente no disco por qualquer operador
-com acesso ao servidor — independentemente do estado da aplicação.
+### Lógica de decisão
 
-```bash
-# Ativação de emergência diretamente no servidor
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | incidente de segurança" > .kill_switch
+- **Concedido**: `approve_count >= required_approvals`
+- **Negado**: qualquer voto `DENY`, ou impossível atingir M com os votos restantes
+- **Timeout**: sem resposta no prazo → `DENY` automático
 
-# Verificação
-cat .kill_switch
+## Kill switch local (por tenant)
 
-# Desativação
-rm .kill_switch
+Cada tenant tem seu próprio kill switch que bloqueia apenas os agentes daquele tenant:
+
+```python
+# Via código
+tenant.activate_kill_switch("manutenção emergencial do time alpha")
+tenant.deactivate_kill_switch()
+
+# Via CLI
+governance kill-switch enable "incidente de segurança no team-alpha"
+governance kill-switch status
+governance kill-switch disable
+```
+
+## Kill switch global (toda a plataforma)
+
+```python
+# Via TenantRuntime — afeta TODOS os tenants simultaneamente
+platform = TenantRuntime(registry)
+count = platform.activate_global_kill_switch("incidente P0 na plataforma")
+print(f"Kill switch ativado em {count} tenants")
+
+# Ativação de emergência direta no servidor (sem código)
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | P0: [motivo]" > .kill_switch
 ```
 
 Veja o runbook completo: [`runbooks/kill-switch.md`](../runbooks/kill-switch.md)
 
 ## Triagem de aprovações por nível de risco
 
-| Nível | Política padrão | Tempo esperado de resposta |
-|-------|----------------|---------------------------|
-| `low` | ALLOW (sem aprovação) | — |
-| `medium` | Depende da ferramenta/ambiente | — |
-| `high` | REQUIRE_APPROVAL | ≤ 15 minutos |
-| `critical` | REQUIRE_APPROVAL + dupla aprovação* | ≤ 5 minutos |
+| Nível | Política padrão | Aprovador | Tempo de resposta |
+|-------|----------------|-----------|------------------|
+| `low` | ALLOW (sem aprovação) | — | — |
+| `medium` | Depende da ferramenta/ambiente | 1 aprovador | — |
+| `high` | REQUIRE_APPROVAL (1-de-1) | Eng. senior ou on-call | ≤ 15 minutos |
+| `critical` | REQUIRE_APPROVAL (M-de-N) | ≥ 2 aprovadores | ≤ 5 minutos |
 
-\* Dupla aprovação não está implementada neste repositório — requer extensão do
-`ApprovalGate` com múltiplos callbacks.
+## Detector de anomalias como camada HOTL
+
+O `AnomalyDetector` atua como Human-on-the-Loop: detecta padrões suspeitos
+e notifica os operadores para que possam intervir (ex.: ativar o kill switch)
+sem necessariamente bloquear cada ação individualmente:
+
+```python
+from governance.anomaly.detector import AnomalyDetector
+
+detector = AnomalyDetector(
+    max_calls_per_minute=30.0,
+    max_deny_rate=0.5,
+    max_consecutive_denies=5,
+    alert_handlers=[pagerduty_alert, slack_alert],
+)
+```
+
+Alertas gerados:
+- `WARNING high_call_rate` — velocidade acima do limite
+- `WARNING high_deny_rate` — taxa de negação suspeita
+- `CRITICAL consecutive_denies` — possível brute-force de ferramentas
+- `INFO off_hours_activity` — ação fora do horário comercial
+- `INFO new_tool_first_use` — agente usando ferramenta pela primeira vez

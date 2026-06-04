@@ -31,13 +31,16 @@ stateDiagram-v2
 ```mermaid
 flowchart TD
     DEV["Desenvolvimento\n(agente em dev)"] --> CODE["Code Review\n(PR aprovado)"]
-    CODE --> UNIT["Testes Unitários\n(pytest)"]
-    UNIT --> EVAL["Eval Gate\n(make eval)"]
+    CODE --> UNIT["Testes Unitários\n(pytest — 124 testes)"]
+    UNIT --> DRYRUN["Policy Dry-run\n(governance policy dryrun)"]
+    DRYRUN --> |"Restrições detectadas"| REVIEW_POL["Revisar impacto\nnos agentes existentes"]
+    REVIEW_POL --> DRYRUN
+    DRYRUN --> EVAL["Eval Gate\n(make eval — 15 cenários)"]
     EVAL --> |"Exit code ≠ 0"| FAIL["❌ Bloqueado\nBarreira não segurou"]
     EVAL --> |"Exit code = 0"| REGISTER["AgentRegistry.register()"]
     REGISTER --> STAGING["Testes em Staging\n(smoke tests)"]
-    STAGING --> REVIEW["Revisão de Segurança\n(opcional)"]
-    REVIEW --> APPROVE["AgentRegistry.approve()\n+ eval_report"]
+    STAGING --> SEC_REVIEW["Revisão de Segurança\n(threat model + STRIDE)"]
+    SEC_REVIEW --> APPROVE["AgentRegistry.approve()\n+ eval_report"]
     APPROVE --> PROD["✅ Produção"]
 ```
 
@@ -85,6 +88,21 @@ registry.approve("data-analyst-v2", eval_report="eval-2025-06-v2")
 registry.deprecate("data-analyst-v1")
 ```
 
+## Gerenciamento de ciclo de vida via CLI
+
+```bash
+# Verificar agentes no registry (via script Python — CLI não expõe listing ainda)
+python -c "
+from governance.registry.catalog import AgentRegistry
+reg = AgentRegistry()
+for a in reg.list_agents():
+    print(a.agent_id, a.status.value, a.version)
+"
+
+# Audit trail de lifecycle
+governance audit replay audit_logs/prod/audit.jsonl | grep agent_registered
+```
+
 ## Auditoria do ciclo de vida
 
 Eventos de ciclo de vida também são registrados na trilha de auditoria:
@@ -92,3 +110,30 @@ Eventos de ciclo de vida também são registrados na trilha de auditoria:
 
 Em produção, registre também `approval` e `deprecation` como eventos auditados
 para rastreabilidade completa de quem fez o quê e quando.
+
+## Geração de evidências de compliance
+
+Ao final de cada período de auditoria (trimestral, anual), gere o relatório de
+evidências automaticamente a partir do audit log:
+
+```python
+from governance.compliance.reporter import ComplianceReporter
+
+reporter = ComplianceReporter("audit_logs/prod/audit.jsonl")
+evidence = reporter.generate()
+print(evidence.render())
+
+# Exporta para o auditor
+evidence_json = evidence.to_json()
+Path("compliance_evidence_Q2_2025.json").write_text(evidence_json)
+```
+
+Via CLI:
+```bash
+governance report compliance audit_logs/prod/audit.jsonl \
+  --output compliance_evidence_Q2_2025.json
+```
+
+O relatório mapeia automaticamente cada tipo de evento para controles do
+NIST AI RMF, ISO/IEC 42001, EU AI Act e OWASP LLM/Agentic Top 10.
+Veja [`docs/09-mapeamento-compliance.md`](09-mapeamento-compliance.md) para o mapeamento completo.

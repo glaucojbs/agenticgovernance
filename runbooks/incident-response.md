@@ -1,6 +1,6 @@
 # Runbook — Resposta a Incidentes com Agentes de IA
 
-**Versão:** 1.0  
+**Versão:** 1.1  
 **Audiência:** Time de operações, SREs, time de segurança
 
 ---
@@ -21,10 +21,13 @@
 ### Passo 1: Ativar o kill switch
 
 ```bash
-# Acesso direto ao servidor (mais rápido)
+# Via CLI (método preferido — não requer Python)
+governance kill-switch enable "P0: [descrever o incidente]"
+
+# Acesso direto ao servidor (mais rápido ainda, sem CLI)
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | P0: [descrever o incidente]" > .kill_switch
 
-# Via código Python (se o servidor estiver acessível)
+# Via código Python
 from governance.approval.gate import ApprovalGate
 gate = ApprovalGate()
 gate.activate_kill_switch("P0: comportamento destrutivo detectado")
@@ -49,15 +52,19 @@ Veja o runbook específico: [revogar-credenciais-de-agente.md](revogar-credencia
 # Copiar o audit log ANTES de qualquer limpeza
 cp audit_logs/producao/audit.jsonl /tmp/incident_$(date +%Y%m%d_%H%M%S).jsonl
 
-# Verificar integridade do log
+# Verificar integridade via CLI
+governance audit verify audit_logs/producao/audit.jsonl
+
+# Verificar assinaturas Ed25519 (se usando SignedAuditLogger)
 python3 -c "
-from governance.audit.logger import AuditLogger
-logger = AuditLogger('audit_logs/producao/audit.jsonl')
-result = logger.verify_chain()
-print(f'Chain válida: {result.valid}, entradas: {result.total_entries}')
-if not result.valid:
-    print(f'Adulteração detectada na entrada #{result.first_broken_at}')
-    print(f'Detalhe: {result.error}')
+from governance.signing.signer import SignedAuditLogger, AuditSigner
+logger = SignedAuditLogger.__new__(SignedAuditLogger)
+logger._log_path = __import__('pathlib').Path('audit_logs/producao/audit.jsonl')
+pub_key = open('keys/audit_public.pem').read()
+result = logger.verify_signatures(pub_key)
+print('Assinaturas válidas:', result['valid'], '/', result['total'])
+if result['invalid_entries']:
+    print('Entradas com problema:', result['invalid_entries'])
 "
 ```
 
@@ -65,28 +72,47 @@ if not result.valid:
 
 ## Análise pós-incidente
 
-### Replay dos eventos do agente suspeito
+### Reconstrução forense via CLI (método mais rápido)
 
-```python
-from governance.audit.logger import AuditLogger
+```bash
+# Reconstruir timeline completa do agente suspeito
+governance forensics audit_logs/producao/audit.jsonl --agents agent-id-suspeito
 
-logger = AuditLogger("audit_logs/producao/audit.jsonl")
-events = logger.get_events_for_agent("agent-id-suspeito")
+# Ver estatísticas do log
+governance audit stats audit_logs/producao/audit.jsonl
 
-for event in events:
-    print(f"[{event.timestamp}] {event.event_type.value}")
-    print(f"  Ferramenta: {event.tool_name}")
-    print(f"  Detalhes: {event.details}")
-    print()
+# Replay filtrado por agente
+governance audit replay audit_logs/producao/audit.jsonl --agent agent-id-suspeito
 ```
 
-### Verificação de integridade da cadeia
+### Reconstrução forense via Python (mais controle)
 
 ```python
-result = logger.verify_chain()
-if not result.valid:
-    print(f"ALERTA: cadeia adulterada!")
-    print(f"Primeira entrada comprometida: #{result.first_broken_at}")
+from governance.forensics.replayer import IncidentReplayer
+
+replayer = IncidentReplayer("audit_logs/producao/audit.jsonl")
+
+# Verifica integridade antes de analisar
+ok, msg = replayer.verify_integrity()
+print(f"Integridade: {msg}")
+
+# Reconstrói timeline
+timeline = replayer.replay(agent_ids=["agent-id-suspeito"])
+print(timeline.render_timeline())
+
+# Resumo de impacto
+summary = replayer.agent_activity_summary("agent-id-suspeito")
+print(f"Taxa de negação: {summary['deny_rate']:.0%}")
+print(f"Ferramentas executadas: {summary['tools_executed']}")
+print(f"Ferramentas tentadas (negadas): {summary['tools_denied']}")
+```
+
+### Geração de evidências para relatório
+
+```bash
+# Gera relatório de compliance automático (para o post-mortem)
+governance report compliance audit_logs/producao/audit.jsonl \
+  --output incident_evidence_$(date +%Y%m%d).json
 ```
 
 ---

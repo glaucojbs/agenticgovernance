@@ -1,6 +1,6 @@
 # Runbook — Revogação de Credenciais de Agente
 
-**Versão:** 1.0  
+**Versão:** 1.1  
 **Audiência:** Time de operações, time de segurança
 
 ---
@@ -95,20 +95,29 @@ registry.deprecate("agent-id-comprometido")
 
 Após a revogação, verifique o audit log para confirmar:
 
+```bash
+# Via CLI — replay filtrado pelo agente comprometido
+governance audit replay audit_logs/producao/audit.jsonl \
+  --agent agent-id-comprometido
+
+# Reconstituição forense completa do agente
+governance forensics audit_logs/producao/audit.jsonl \
+  --agents agent-id-comprometido
+```
+
+Via Python (para análise mais detalhada):
 ```python
-from governance.audit.logger import AuditLogger
+from governance.forensics.replayer import IncidentReplayer
 
-logger = AuditLogger("audit_logs/producao/audit.jsonl")
-events = logger.get_events_for_agent("agent-id-comprometido")
+replayer = IncidentReplayer("audit_logs/producao/audit.jsonl")
+summary = replayer.agent_activity_summary("agent-id-comprometido")
 
-# Procure por tentativas de acesso após a revogação
-from governance.audit.logger import AuditEventType
-denied_after = [
-    e for e in events
-    if e.event_type in (AuditEventType.ACTION_DENIED, AuditEventType.CREDENTIAL_REVOKED)
-]
-for e in denied_after:
-    print(f"[{e.timestamp}] {e.event_type.value}: {e.details}")
+print(f"Total de eventos  : {summary['total_events']}")
+print(f"Ações executadas  : {summary['executed']}")
+print(f"Ações negadas     : {summary['denied']}")
+print(f"Taxa de negação   : {summary['deny_rate']:.0%}")
+print(f"Ferramentas usadas: {summary['tools_executed']}")
+print(f"Ferramentas negadas: {summary['tools_denied']}")
 ```
 
 ---
