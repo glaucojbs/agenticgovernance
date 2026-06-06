@@ -24,9 +24,9 @@ git clone https://github.com/glaucojbs/agenticgovernance
 cd agenticgovernance
 
 make setup          # cria virtualenv + instala deps
-make demo           # roda os 5 exemplos em sequência
+make demo           # roda os 12 exemplos em sequência
 make test           # testes unitários com cobertura
-make eval           # eval gate (15 cenários adversariais)
+make eval           # eval gate (23 cenários adversariais)
 ```
 
 Nenhuma chave de API é necessária. O "LLM" dos exemplos é um agente **simulado** (mock) plugável.
@@ -117,16 +117,19 @@ src/governance/
   budget/         — BudgetGuard (custo, tokens, calls, rate limit)
   registry/       — ToolRegistry + AgentRegistry (registered/approved/deprecated)
   runtime/        — GovernedAgentRuntime + GovernanceConfig (injeção limpa)
-  telemetry/      — OpenTelemetry (spans + métricas, exporters console e OTLP)
+  telemetry/      — OpenTelemetry (spans + métricas) + semconv GenAI (gen_ai.*)
   anomaly/        — AnomalyDetector (velocity, deny rate, consecutive denies, off-hours)
   masking/        — PIIMasker (e-mail, CPF, JWT, IP, cartão, padrões custom)
   circuit_breaker/— CircuitBreaker por ferramenta (CLOSED/OPEN/HALF_OPEN)
-  signing/        — AuditSigner Ed25519 + SignedAuditLogger
+  guardrails/     — GuardrailScanner (prompt injection, DLP de egress, secret leak) [Fase 8]
+  supply_chain/   — ToolIntegrityRegistry + McpServerAllowlist + AI-BOM [Fase 8]
+  memory/         — GovernedMemoryStore (trust labels + quarentena anti-poisoning) [Fase 8]
+  a2a/            — SignedAgentChannel (mensagens assinadas + nonce anti-replay) [Fase 8]
   vault/          — SecretStore (TTL, versões, access policy, rotação, audit)
   forensics/      — IncidentReplayer (timeline, negações consecutivas, resumo)
-  compliance/     — ComplianceReporter (evidências → NIST/ISO/EU AI Act/OWASP)
+  compliance/     — ComplianceReporter + ModelCard (NIST/ISO/EU AI Act/OWASP Agentic)
   tenancy/        — Tenant + TenantRegistry + TenantRuntime (isolamento multi-tenant)
-  cli/            — CLI operacional (kill-switch, audit, policy, forensics, report)
+  cli/            — CLI operacional (kill-switch, audit, policy, forensics, report, guardrail, aibom)
 
 policies/         — YAML de política (versionados, testáveis, default-deny)
 docker/           — Prometheus, Grafana, OPA configs para make stack
@@ -139,11 +142,15 @@ examples/
   06_forensics/              — reconstrução de timeline de incidente
   07_multi_tenant/           — três equipes isoladas + kill switch local e global
   08_compliance_report/      — PII masking + M-de-N approval + dry-run + evidências
-evals/          — 15 cenários adversariais (eval gate do CI)
-docs/           — 10 documentos pt-BR com diagramas Mermaid
+  09_guardrails/             — prompt injection (in/out) + DLP de egress [Fase 8]
+  10_tool_integrity/         — tool poisoning + allowlist MCP + AI-BOM [Fase 8]
+  11_memory_a2a/             — quarentena de memória + A2A assinado (replay/tamper) [Fase 8]
+  12_standards_report/       — OTel GenAI + OWASP Agentic + GPAI model card [Fase 8]
+evals/          — 23 cenários adversariais (eval gate do CI)
+docs/           — 13 documentos pt-BR com diagramas Mermaid
 threat-model/   — STRIDE + OWASP Top 10 LLM/Agentic
 runbooks/       — kill switch, incident response, revogação de credenciais
-tests/          — 124 testes unitários
+tests/          — 207 testes unitários
 ```
 
 Documentação detalhada: [`docs/00-visao-geral.md`](docs/00-visao-geral.md)
@@ -163,8 +170,8 @@ Documentação detalhada: [`docs/00-visao-geral.md`](docs/00-visao-geral.md)
 - [x] Approval gate HITL com kill switch global (arquivo em disco)
 - [x] Catálogo de agentes e ferramentas com ciclo de vida (registered → approved → deprecated)
 - [x] GovernedAgentRuntime orquestrando os 8 controles em sequência
-- [x] 5 exemplos executáveis
-- [x] Eval gate com 15 cenários adversariais (exit code ≠ 0 se barreira ceder)
+- [x] 12 exemplos executáveis
+- [x] Eval gate com 23 cenários adversariais (exit code ≠ 0 se barreira ceder)
 - [x] CI: lint + testes + eval gate + smoke test dos exemplos
 
 ### Camada observabilidade (L2–L3) — ativa com `make stack`
@@ -189,14 +196,26 @@ Documentação detalhada: [`docs/00-visao-geral.md`](docs/00-visao-geral.md)
 - [x] **ComplianceReporter** — coleta evidências mapeadas a NIST AI RMF / ISO 42001 / EU AI Act
 - [x] **SecretStore simulado** — padrão Vault/KMS com TTL, versões, access policy e rotação
 - [x] **Multi-tenancy** — isolamento completo entre equipes (policy, budget, audit, kill switch)
-- [x] **CLI operacional** — `governance kill-switch`, `audit verify/stats/replay`, `policy eval/dryrun`, `forensics`, `report compliance`
+- [x] **CLI operacional** — `governance kill-switch`, `audit verify/stats/replay`, `policy eval/dryrun`, `forensics`, `report compliance`, `guardrail scan`, `aibom`
 - [x] 8 exemplos executáveis (01 anti-exemplo → 08 compliance + PII)
+
+### Camada era agêntica (Fase 8) — OWASP Top 10 for Agentic Applications
+
+- [x] **Guardrails de conteúdo** — prompt injection direto/indireto, jailbreak, unicode oculto, DLP de egress e secret leak (entrada e saída), com hook LLM opcional plugável (ASI01/ASI06)
+- [x] **Integridade de ferramentas** — fingerprint + assinatura Ed25519, detecção de tool poisoning e escalada silenciosa de escopo (ASI06)
+- [x] **Allowlist MCP** — só ferramentas de servidores MCP confiáveis (ASI07)
+- [x] **AI-BOM** — inventário verificável de ferramentas/modelos (GPAI/NIST GenAI)
+- [x] **Memória governada** — trust labels por proveniência + quarentena de conteúdo envenenado na recuperação (ASI09)
+- [x] **Comunicação A2A assinada** — mensagens Ed25519 + capability token + nonce anti-replay (ASI04)
+- [x] **OTel GenAI Semantic Conventions** — atributos `gen_ai.*` aditivos nos spans
+- [x] **Model Card** (EU AI Act GPAI Art.53) + mapeamento NIST GenAI Profile (12 categorias)
+- [x] 4 exemplos (09 guardrails → 12 padrões) + 8 cenários adversariais (I–L)
 
 ### Compliance e documentação
 
-- [x] Mapeamento: NIST AI RMF, ISO/IEC 42001, EU AI Act, OWASP LLM/Agentic Top 10
+- [x] Mapeamento: NIST AI RMF, ISO/IEC 42001, EU AI Act + **GPAI**, OWASP LLM Top 10 + **OWASP Top 10 for Agentic Applications**, NIST GenAI Profile
 - [x] Threat model STRIDE + OWASP Top 10 for LLM/Agentic Applications
-- [x] 3 Architecture Decision Records (ADR)
+- [x] 8 Architecture Decision Records (ADR)
 - [x] Runbooks operacionais (kill switch, incident response, revogação)
 - [x] **Arquitetura de produção L1→L4** com SPIFFE, Kafka, gVisor, Vault/KMS, ML anomaly
 

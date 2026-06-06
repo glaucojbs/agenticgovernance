@@ -53,6 +53,8 @@ ignore = ["ANN401"]
 "src/governance/forensics/*" = ["E501"]
 "src/governance/compliance/*" = ["E501"]
 "src/governance/cli/*" = ["E501"]
+"src/governance/guardrails/*" = ["E501"]
+"src/governance/supply_chain/*" = ["E501"]
 
 [tool.coverage.run]
 source = ["src/governance"]

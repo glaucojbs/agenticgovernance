@@ -158,6 +158,22 @@ só pode fazer o que foi explicitamente autorizado.
 
 ---
 
+## Ameaças da era agêntica (Fase 8 — OWASP Top 10 for Agentic Applications)
+
+Vetores específicos de sistemas agênticos, onde a ação pode ser "autorizada" mas o ataque
+está no **conteúdo** ou na **proveniência** — não cobertos por RBAC/política:
+
+| Ameaça (OWASP Agentic) | Vetor | Mitigação |
+|------------------------|-------|-----------|
+| ASI01 Goal Hijacking | injeção indireta em conteúdo externo / saída de tool | Guardrails de conteúdo (`guardrails/`), in e out |
+| ASI06 Tool Misuse | descrição de ferramenta envenenada | Integridade por fingerprint assinada (`supply_chain/`) |
+| ASI07 Agentic Supply Chain | servidor MCP comprometido | Allowlist MCP + AI-BOM (`supply_chain/`) |
+| ASI09 Memory Poisoning | conteúdo malicioso persistido na memória | Trust labels + quarentena na recuperação (`memory/`) |
+| ASI04 Insecure Inter-Agent Comm | forja/replay/tamper de mensagens A2A | Canal assinado Ed25519 + nonce (`a2a/`) |
+
+Cada vetor é exercitado por cenários adversariais (I–L) no eval gate. Ver
+[ADR-008](../docs/adr/ADR-008-defesas-agenticas.md).
+
 ## Declaração de risco residual
 
 Este repositório é uma **implementação de referência educacional**. Com as mitigações

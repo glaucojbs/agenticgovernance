@@ -99,6 +99,29 @@ class AuditSigner:
             Encoding.PEM, PublicFormat.SubjectPublicKeyInfo
         ).decode()
 
+    def sign_message(self, message: str) -> str:
+        """Assina uma string arbitrária (ex.: digest de manifesto de tool, mensagem A2A)."""
+        sig_bytes = self._private_key.sign(message.encode())
+        return base64.b64encode(sig_bytes).decode()
+
+    @staticmethod
+    def verify_message(
+        message: str,
+        signature_b64: str,
+        public_key_pem: bytes | str,
+    ) -> bool:
+        """Verifica a assinatura de uma string arbitrária usando a chave pública."""
+        if isinstance(public_key_pem, str):
+            public_key_pem = public_key_pem.encode()
+        pub_key = load_pem_public_key(public_key_pem)
+        if not isinstance(pub_key, Ed25519PublicKey):
+            raise ValueError("PEM não contém chave Ed25519 pública")
+        try:
+            pub_key.verify(base64.b64decode(signature_b64), message.encode())
+            return True
+        except Exception:
+            return False
+
     def sign_entry(self, event: AuditEvent) -> str:
         """Assina uma entrada de auditoria e retorna a assinatura em base64."""
         payload = json.dumps(

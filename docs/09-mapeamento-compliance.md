@@ -87,5 +87,39 @@
 
 ---
 
-*Última atualização: 2025. Os frameworks referenciados estão sujeitos a revisão.*
+## OWASP Top 10 for Agentic Applications (dez/2025)
+
+O benchmark de referência para segurança de aplicações agênticas. O `ComplianceReporter`
+mapeia eventos do audit log para estes controles (framework `OWASP Agentic`):
+
+| ID | Ameaça | Defesa neste repositório |
+|----|--------|--------------------------|
+| ASI01 | **Agent Goal Hijacking** | Guardrails de conteúdo (prompt injection in/out) — `guardrails/` |
+| ASI02 | **Identity & Privilege Abuse** | Escopos explícitos + cadeia de delegação + `ACTION_DENIED` |
+| ASI04 | **Insecure Inter-Agent Communication** | Canal A2A assinado + nonce — `a2a/` |
+| ASI06 | **Tool Misuse & Exploitation** | Integridade de ferramentas + guardrails — `supply_chain/` |
+| ASI07 | **Agentic Supply Chain** | Fingerprint assinada + allowlist MCP + AI-BOM — `supply_chain/` |
+| ASI09 | **Memory & Context Poisoning** | Memória governada + quarentena — `memory/` |
+
+## EU AI Act — obrigações GPAI (em vigor desde ago/2025)
+
+| Obrigação (Art.53/55) | Evidência |
+|-----------------------|-----------|
+| Documentação técnica / model card | `generate_model_card()` — `compliance/model_card.py` |
+| Inventário de componentes | AI-BOM — `supply_chain/aibom.py` |
+| Post-market monitoring | Audit log + telemetria + anomaly detector |
+| Reporte de incidentes / mitigação de risco sistêmico | `GUARDRAIL_BLOCKED`, kill switch, runbooks |
+
+## NIST GenAI Profile (AI 600-1)
+
+As 12 categorias de risco do NIST GenAI estão disponíveis em
+`NIST_GENAI_RISK_CATEGORIES` e são referenciadas no model card. Os guardrails endereçam
+diretamente **Information Integrity**, **Data Privacy** e **Information Security**.
+
+> Nota: nenhum dos frameworks "clássicos" (EU AI Act, NIST RMF, ISO 42001) foi desenhado
+> para agentes autônomos; este repositório os **estende** com os controles agênticos acima.
+
+---
+
+*Última atualização: 2026. Os frameworks referenciados estão sujeitos a revisão.*
 *Verifique sempre as versões mais recentes nos sites oficiais dos publicadores.*

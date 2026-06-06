@@ -86,6 +86,28 @@ class GovernanceTelemetry:
             unit="1",
         )
 
+        # ── Contadores Fase 8 (defesas da era agêntica) ───────────────────────
+        self.guardrail_blocks = meter.create_counter(
+            "governance.guardrail.blocks.total",
+            description="Total de bloqueios por guardrails de conteúdo (por direção/regra)",
+            unit="1",
+        )
+        self.tool_integrity_violations = meter.create_counter(
+            "governance.tool_integrity.violations.total",
+            description="Total de violações de integridade de ferramentas (tool poisoning)",
+            unit="1",
+        )
+        self.memory_quarantines = meter.create_counter(
+            "governance.memory.quarantines.total",
+            description="Total de entradas de memória colocadas em quarentena",
+            unit="1",
+        )
+        self.a2a_rejections = meter.create_counter(
+            "governance.a2a.rejections.total",
+            description="Total de mensagens inter-agente rejeitadas",
+            unit="1",
+        )
+
         # ── Histogramas ───────────────────────────────────────────────────────
         self.action_latency = meter.create_histogram(
             "governance.action.latency.ms",

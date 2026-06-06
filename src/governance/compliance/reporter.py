@@ -113,11 +113,13 @@ _EVENT_CONTROLS: dict[AuditEventType, list[tuple[str, str, str]]] = {
     AuditEventType.ACTION_DENIED: [
         ("NIST AI RMF", "MANAGE-1.3", "Risk Response"),
         ("OWASP LLM", "LLM08", "Excessive Agency"),
+        ("OWASP Agentic", "ASI02", "Identity & Privilege Abuse"),
     ],
     AuditEventType.ACTION_EXECUTED: [
         ("NIST AI RMF", "MEASURE-2.5", "AI System Monitoring"),
         ("ISO/IEC 42001", "8.4", "AI System Logging"),
         ("EU AI Act", "Art.12", "Record-keeping"),
+        ("EU AI Act GPAI", "Art.53", "Technical Documentation"),
     ],
     AuditEventType.APPROVAL_REQUESTED: [
         ("NIST AI RMF", "GOVERN-5.2", "Human Oversight"),
@@ -144,6 +146,30 @@ _EVENT_CONTROLS: dict[AuditEventType, list[tuple[str, str, str]]] = {
     AuditEventType.CREDENTIAL_REVOKED: [
         ("NIST AI RMF", "MANAGE-3.1", "Risk Mitigation"),
         ("ISO/IEC 42001", "9.1", "Monitoring"),
+    ],
+    # ── Fase 8 — defesas da era agêntica (OWASP Agentic Top 10) ──────────────
+    AuditEventType.GUARDRAIL_BLOCKED: [
+        ("OWASP Agentic", "ASI01", "Agent Goal Hijacking"),
+        ("OWASP LLM", "LLM01", "Prompt Injection"),
+        ("NIST GenAI", "2.8", "Information Integrity"),
+        ("EU AI Act GPAI", "Art.55", "Systemic Risk Mitigation"),
+    ],
+    AuditEventType.GUARDRAIL_FLAGGED: [
+        ("OWASP Agentic", "ASI01", "Agent Goal Hijacking"),
+        ("NIST GenAI", "2.4", "Data Privacy"),
+    ],
+    AuditEventType.TOOL_INTEGRITY_VIOLATION: [
+        ("OWASP Agentic", "ASI06", "Tool Misuse & Exploitation"),
+        ("OWASP Agentic", "ASI07", "Agentic Supply Chain"),
+        ("NIST AI RMF", "MAP-4.1", "Third-party / Supply Chain Risk"),
+    ],
+    AuditEventType.MEMORY_QUARANTINED: [
+        ("OWASP Agentic", "ASI09", "Memory & Context Poisoning"),
+        ("NIST GenAI", "2.8", "Information Integrity"),
+    ],
+    AuditEventType.A2A_MESSAGE_REJECTED: [
+        ("OWASP Agentic", "ASI04", "Insecure Inter-Agent Communication"),
+        ("NIST AI RMF", "MANAGE-2.2", "Mechanisms to Sustain AI"),
     ],
 }
 

@@ -36,6 +36,12 @@ class AuditEventType(StrEnum):
     AGENT_REGISTERED = "agent_registered"
     DELEGATION_CREATED = "delegation_created"
     ERROR = "error"
+    # Fase 8 — defesas da era agêntica (OWASP Agentic Top 10)
+    GUARDRAIL_BLOCKED = "guardrail_blocked"
+    GUARDRAIL_FLAGGED = "guardrail_flagged"
+    TOOL_INTEGRITY_VIOLATION = "tool_integrity_violation"
+    MEMORY_QUARANTINED = "memory_quarantined"
+    A2A_MESSAGE_REJECTED = "a2a_message_rejected"
 
 
 class AuditEvent(BaseModel):

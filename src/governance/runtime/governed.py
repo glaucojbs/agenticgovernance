@@ -42,11 +42,14 @@ from governance.telemetry.otel import (
     SPAN_ATTR_TOOL_NAME,
     GovernanceTelemetry,
 )
+from governance.telemetry.semconv import set_tool_span_attributes
 
 if TYPE_CHECKING:
     from governance.anomaly.detector import AnomalyDetector
     from governance.circuit_breaker.breaker import CircuitBreakerRegistry
+    from governance.guardrails.scanner import GuardrailScanner
     from governance.masking.masker import PIIMasker
+    from governance.supply_chain.tool_integrity import ToolIntegrityRegistry
 
 
 class ExecutionResult(BaseModel):
@@ -106,6 +109,10 @@ class GovernedAgentRuntime:
         self._anomaly = cfg.anomaly_detector if config else anomaly_detector
         self._masker: PIIMasker | None = cfg.pii_masker if config else None
         self._cb_registry: CircuitBreakerRegistry | None = cfg.circuit_breakers if config else None
+        self._guardrails: GuardrailScanner | None = cfg.guardrails if config else None
+        self._tool_integrity: ToolIntegrityRegistry | None = (
+            cfg.tool_integrity if config else None
+        )
 
     def execute(
         self,
@@ -127,6 +134,14 @@ class GovernedAgentRuntime:
             span.set_attribute(SPAN_ATTR_AGENT_NAME, identity.name)
             span.set_attribute(SPAN_ATTR_TOOL_NAME, tool_name)
             span.set_attribute(SPAN_ATTR_ENVIRONMENT, identity.environment.value)
+
+            # Atributos padrão OTel GenAI (gen_ai.*) — interoperabilidade
+            set_tool_span_attributes(
+                span,
+                agent_id=identity.id,
+                agent_name=identity.name,
+                tool_name=tool_name,
+            )
 
             result = self._execute_inner(identity, tool_name, params, risk_level, span)
 
@@ -167,6 +182,10 @@ class GovernedAgentRuntime:
         span: trace.Span,
     ) -> ExecutionResult:
         """Lógica central de execução — chamada dentro do span raiz."""
+
+        # Conteúdo original (pré-masking) para os guardrails —
+        # o DLP precisa enxergar o dado sensível real antes de ser redatado.
+        raw_params = dict(params)
 
         # Aplica PII masking nos parâmetros antes de qualquer auditoria
         if self._masker and params:
@@ -230,6 +249,33 @@ class GovernedAgentRuntime:
                 success=False, tool_name=tool_name, agent_id=identity.id,
                 error=f"Agente com status '{status}' não pode operar em produção",
             )
+
+        # ── 3b. Guardrails de entrada (prompt injection / DLP de egress) ──────
+        if self._guardrails:
+            scan = self._guardrails.scan_parameters(raw_params, tool_name=tool_name)
+            if scan.blocked:
+                event = self._audit.log(
+                    AuditEventType.GUARDRAIL_BLOCKED,
+                    agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
+                    environment=identity.environment.value,
+                    details={"direction": "input", "findings": scan.summary()},
+                )
+                if self._tel:
+                    self._tel.guardrail_blocks.add(
+                        1, {"agent.id": identity.id, "direction": "input"}
+                    )
+                return ExecutionResult(
+                    success=False, tool_name=tool_name, agent_id=identity.id,
+                    error=f"Guardrail bloqueou a entrada: {scan.summary()}",
+                    audit_sequence=event.sequence,
+                )
+            if scan.flagged:
+                self._audit.log(
+                    AuditEventType.GUARDRAIL_FLAGGED,
+                    agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
+                    environment=identity.environment.value,
+                    details={"direction": "input", "findings": scan.summary()},
+                )
 
         # ── 4. Avaliação de política ──────────────────────────────────────────
         tool_def = self._tools.get(tool_name)
@@ -359,6 +405,28 @@ class GovernedAgentRuntime:
                     1, {"agent.id": identity.id, "status": "granted"}
                 )
 
+        # ── 6b. Integridade da ferramenta (anti tool-poisoning / supply chain) ─
+        if self._tool_integrity:
+            integrity = self._tool_integrity.verify(self._tools, tool_name)
+            if not integrity.ok:
+                event = self._audit.log(
+                    AuditEventType.TOOL_INTEGRITY_VIOLATION,
+                    agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
+                    environment=identity.environment.value,
+                    details={
+                        "reason": integrity.reason,
+                        "expected_digest": integrity.expected_digest,
+                        "actual_digest": integrity.actual_digest,
+                    },
+                )
+                if self._tel:
+                    self._tel.tool_integrity_violations.add(1, {"tool.name": tool_name})
+                return ExecutionResult(
+                    success=False, tool_name=tool_name, agent_id=identity.id,
+                    error=f"Integridade da ferramenta falhou: {integrity.reason}",
+                    audit_sequence=event.sequence,
+                )
+
         # ── 7. Execução com timeout + circuit breaker ─────────────────────────
         if self._cb_registry:
             cb = self._cb_registry.get_or_create(tool_name)
@@ -388,6 +456,33 @@ class GovernedAgentRuntime:
                 success=False, tool_name=tool_name, agent_id=identity.id,
                 error=exec_error, audit_sequence=event.sequence,
             )
+
+        # ── 7b. Guardrails de saída (injeção indireta / vazamento de segredo) ─
+        if self._guardrails:
+            out_scan = self._guardrails.scan_output(output, tool_name=tool_name)
+            if out_scan.blocked:
+                event = self._audit.log(
+                    AuditEventType.GUARDRAIL_BLOCKED,
+                    agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
+                    environment=identity.environment.value,
+                    details={"direction": "output", "findings": out_scan.summary()},
+                )
+                if self._tel:
+                    self._tel.guardrail_blocks.add(
+                        1, {"agent.id": identity.id, "direction": "output"}
+                    )
+                return ExecutionResult(
+                    success=False, tool_name=tool_name, agent_id=identity.id,
+                    error=f"Guardrail bloqueou a saída: {out_scan.summary()}",
+                    audit_sequence=event.sequence,
+                )
+            if out_scan.flagged:
+                self._audit.log(
+                    AuditEventType.GUARDRAIL_FLAGGED,
+                    agent_id=identity.id, agent_name=identity.name, tool_name=tool_name,
+                    environment=identity.environment.value,
+                    details={"direction": "output", "findings": out_scan.summary()},
+                )
 
         event = self._audit.log(
             AuditEventType.ACTION_EXECUTED,

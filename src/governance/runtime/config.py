@@ -13,7 +13,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from governance.anomaly.detector import AnomalyDetector
     from governance.circuit_breaker.breaker import CircuitBreakerRegistry
+    from governance.guardrails.scanner import GuardrailScanner
     from governance.masking.masker import PIIMasker
+    from governance.supply_chain.tool_integrity import ToolIntegrityRegistry
     from governance.telemetry.otel import GovernanceTelemetry
 
 
@@ -31,6 +33,9 @@ class GovernanceConfig:
     anomaly_detector: AnomalyDetector | None = None
     pii_masker: PIIMasker | None = None
     circuit_breakers: CircuitBreakerRegistry | None = None
+    # Fase 8 — defesas da era agêntica
+    guardrails: GuardrailScanner | None = None
+    tool_integrity: ToolIntegrityRegistry | None = None
 
     @classmethod
     def default(cls) -> GovernanceConfig:

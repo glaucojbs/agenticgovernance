@@ -217,3 +217,31 @@ governance forensics audit_logs/prod/audit.jsonl --agents agent-suspeito
 | Streaming em tempo real | Kafka → Apache Flink → Iceberg |
 | Integração com SIEM | Formatar em CEF/LEEF para Splunk/Sentinel |
 | Timestamp externo | RFC 3161 TSA ou ancoragem em blockchain pública |
+
+---
+
+## OTel GenAI Semantic Conventions (`gen_ai.*`)
+
+A partir da Fase 8, cada span de execução carrega — de forma **aditiva**, sem remover os
+atributos `governance.*` — os atributos padronizados pela
+[OTel GenAI SIG](https://opentelemetry.io/docs/specs/semconv/gen-ai/). Isso torna os traces
+interoperáveis com Datadog, Honeycomb, Grafana e com frameworks como LangChain, CrewAI e AutoGen.
+
+| Atributo `gen_ai.*` | Conteúdo |
+|---------------------|----------|
+| `gen_ai.operation.name` | `execute_tool` |
+| `gen_ai.agent.id` / `gen_ai.agent.name` | identidade do agente |
+| `gen_ai.tool.name` / `gen_ai.tool.type` | ferramenta invocada |
+| `gen_ai.request.model` | modelo (quando informado) |
+| `gen_ai.usage.input_tokens` / `output_tokens` | consumo (quando disponível) |
+| `gen_ai.response.finish_reasons` | motivo de término |
+
+A aplicação fica em `src/governance/telemetry/semconv.py` (`set_tool_span_attributes`),
+chamada pelo `GovernedAgentRuntime` em cada `execute()`. Veja
+[`examples/12_standards_report`](../examples/12_standards_report/__main__.py) — com
+`OTEL_EXPORTER=otlp` os spans são exportados para o Jaeger local.
+
+### Métricas adicionais (Fase 8)
+
+`governance.guardrail.blocks.total`, `governance.tool_integrity.violations.total`,
+`governance.memory.quarantines.total`, `governance.a2a.rejections.total`.

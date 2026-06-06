@@ -89,6 +89,26 @@ demo:
 	@echo " EXEMPLO 08 — Compliance, PII Masking e Dry-run"
 	@echo "============================================================"
 	$(PY) -m examples.08_compliance_report
+	@echo ""
+	@echo "============================================================"
+	@echo " EXEMPLO 09 — Guardrails de conteúdo (prompt injection / DLP)"
+	@echo "============================================================"
+	$(PY) -m examples.09_guardrails
+	@echo ""
+	@echo "============================================================"
+	@echo " EXEMPLO 10 — Integridade de ferramentas e MCP (supply chain)"
+	@echo "============================================================"
+	$(PY) -m examples.10_tool_integrity
+	@echo ""
+	@echo "============================================================"
+	@echo " EXEMPLO 11 — Memória governada + comunicação A2A assinada"
+	@echo "============================================================"
+	$(PY) -m examples.11_memory_a2a
+	@echo ""
+	@echo "============================================================"
+	@echo " EXEMPLO 12 — Padrões 2025/2026 (OTel GenAI + OWASP Agentic + GPAI)"
+	@echo "============================================================"
+	$(PY) -m examples.12_standards_report
 
 ## eval: roda o eval gate (falha se qualquer barreira não segurar)
 eval:

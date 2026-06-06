@@ -65,6 +65,10 @@ class MaskingRule:
     def apply(self, text: str) -> str:
         return self._compiled.sub(self.replacement, text)
 
+    def matches(self, text: str) -> bool:
+        """Retorna True se o padrão casa em algum trecho do texto (sem mascarar)."""
+        return bool(self._compiled.search(text))
+
 
 class PIIMasker:
     """
@@ -113,6 +117,14 @@ class PIIMasker:
         for rule in self._rules:
             text = rule.apply(text)
         return text
+
+    def find_matches(self, text: str) -> list[str]:
+        """Retorna os nomes das regras cujo padrão casa no texto (detecção, não redação).
+
+        Usado por detectores de DLP/exfiltração para reaproveitar os padrões de PII
+        sem mascarar o conteúdo.
+        """
+        return [rule.name or rule.pattern for rule in self._rules if rule.matches(text)]
 
     def mask_details(self, details: dict[str, Any]) -> dict[str, Any]:
         """Aplica mascaramento recursivo sobre um dict de detalhes."""

@@ -253,6 +253,54 @@ def cmd_report_compliance(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_guardrail_scan(args: argparse.Namespace) -> int:
+    from governance.guardrails.scanner import GuardrailScanner, ScanDirection
+
+    scanner = GuardrailScanner.with_defaults()
+    direction = ScanDirection(args.direction)
+    result = scanner.scan_text(args.text, direction, tool_name=getattr(args, "tool", None))
+
+    icon = {"ALLOW": "✓", "FLAG": "⚠", "BLOCK": "✗"}[result.verdict.value]
+    print(f"\n  {icon}  VEREDITO: {result.verdict.value}  ({direction.value})")
+    if not result.findings:
+        print("     (nenhum achado)")
+    for finding in result.findings:
+        print(f"     - [{finding.detector}] {finding.rule}: {finding.message}")
+    return 0 if result.verdict.value != "BLOCK" else 1
+
+
+def cmd_aibom(args: argparse.Namespace) -> int:
+    from governance.identity.models import AgentScope
+    from governance.policy.engine import RiskLevel
+    from governance.registry.catalog import ToolDefinition, ToolRegistry
+    from governance.signing.signer import AuditSigner
+    from governance.supply_chain.aibom import generate_aibom
+    from governance.supply_chain.tool_integrity import ToolIntegrityRegistry
+
+    registry = ToolRegistry()
+    demo = [
+        ("read_files", "Lê arquivos", RiskLevel.LOW, AgentScope.READ_FILES),
+        ("query_database", "Consulta o banco", RiskLevel.LOW, AgentScope.READ_DATABASE),
+        ("send_email", "Envia e-mail", RiskLevel.MEDIUM, AgentScope.SEND_EMAIL),
+        ("delete_files", "Apaga arquivos", RiskLevel.HIGH, AgentScope.DELETE_FILES),
+    ]
+    for name, desc, risk, scope in demo:
+        registry.register(
+            ToolDefinition(name=name, description=desc, risk_level=risk, required_scope=scope),
+            implementation=lambda **kw: None,
+        )
+
+    integrity = ToolIntegrityRegistry(signer=AuditSigner.generate())
+    integrity.pin_registry(registry, server_id="internal-mcp")
+    bom = generate_aibom(registry, integrity)
+    print(bom.render())
+
+    if args.output:
+        Path(args.output).write_text(bom.to_json())
+        print(f"\n  AI-BOM salvo em: {args.output}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="governance",
@@ -318,6 +366,18 @@ def build_parser() -> argparse.ArgumentParser:
     rc.add_argument("log_path", help="Caminho do arquivo JSONL")
     rc.add_argument("--output", help="Salva relatório JSON neste arquivo")
 
+    # ── guardrail ───────────────────────────────────────────────────────────
+    gr = sub.add_parser("guardrail", help="Inspeção de conteúdo (guardrails)")
+    gr_sub = gr.add_subparsers(dest="guardrail_action")
+    grs = gr_sub.add_parser("scan", help="Varre um texto em busca de injeção/exfiltração")
+    grs.add_argument("text", help="Texto a inspecionar")
+    grs.add_argument("--direction", default="input", choices=["input", "output"])
+    grs.add_argument("--tool", help="Nome da ferramenta (ativa DLP de egress)")
+
+    # ── aibom ───────────────────────────────────────────────────────────────
+    ab = sub.add_parser("aibom", help="Gera um AI Bill of Materials de demonstração")
+    ab.add_argument("--output", help="Salva o AI-BOM JSON neste arquivo")
+
     return parser
 
 
@@ -347,6 +407,12 @@ def main() -> int:
 
     if args.command == "report" and getattr(args, "report_type", None) == "compliance":
         return cmd_report_compliance(args)
+
+    if args.command == "guardrail" and getattr(args, "guardrail_action", None) == "scan":
+        return cmd_guardrail_scan(args)
+
+    if args.command == "aibom":
+        return cmd_aibom(args)
 
     parser.print_help()
     return 0
