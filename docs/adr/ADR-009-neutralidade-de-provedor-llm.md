@@ -61,19 +61,30 @@ existir apenas como ponte para `AGENTS.md`.
 Rejeitado. Isso mistura controle de governança com implementação de inferência e aumenta
 o custo de troca de provedor.
 
-## Implementação recomendada
+## Implementação
 
-Quando LLMs reais forem conectadas, use uma estrutura semelhante a:
+A estrutura recomendada foi implementada em `src/governance/llm/`:
 
 ```text
 src/governance/llm/
-  provider.py
-  mock.py
-  openai_adapter.py
-  anthropic_adapter.py
-  azure_adapter.py
-  ollama_adapter.py
+  provider.py          # LlmProvider (Protocol), LlmRequest, LlmResponse, LlmUsage, LlmMessage
+  mock.py              # MockLlmProvider — offline, determinístico
+  governed.py          # GovernedLlmProvider — inferência governada
+  adapters/
+    anthropic_adapter.py
+    openai_adapter.py
+    azure_adapter.py
+    ollama_adapter.py
 ```
 
-O domínio deve depender de abstrações como `LlmProvider`, `LlmRequest` e `LlmResponse`.
-Adapters podem depender dos SDKs concretos.
+O domínio depende apenas das abstrações `LlmProvider`, `LlmRequest` e `LlmResponse`.
+Cada adapter importa o SDK do fornecedor **preguiçosamente**, dentro do método que o usa;
+os SDKs são declarados como extras opcionais em `pyproject.toml` (`anthropic`, `openai`,
+`azure`, `ollama`), mantendo a instalação base e os testes offline.
+
+`GovernedLlmProvider` envolve qualquer `LlmProvider` e roteia a inferência pelos mesmos
+controles aplicados às ferramentas: guardrails de entrada/saída, orçamento, auditoria
+(`llm_invoked`) e telemetria com atributos `gen_ai.*`. Qualquer implementação de provedor
+é validada pela suíte de conformidade em `tests/test_llm_conformance.py`.
+
+Ver `examples/13_llm_provider` para uma demonstração executável e offline.
