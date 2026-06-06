@@ -27,6 +27,12 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.4",
 ]
+# Adapters de provedor — opcionais. A instalação base permanece offline;
+# nenhum SDK de fornecedor é importado fora de governance.llm.adapters.
+anthropic = ["anthropic>=0.40"]
+openai = ["openai>=1.40"]
+azure = ["openai>=1.40"]
+ollama = ["ollama>=0.3"]
 
 [project.scripts]
 governance = "governance.cli.main:main"

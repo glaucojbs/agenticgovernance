@@ -57,6 +57,13 @@ def _tool_wipe_database(confirm: str = "") -> str:
     return "[SIMULADO] BANCO APAGADO COMPLETAMENTE"
 
 
+def make_mock_llm(scripted: list[str] | None = None):
+    """Cria um MockLlmProvider offline para os exemplos da camada LLM."""
+    from governance.llm.mock import MockLlmProvider
+
+    return MockLlmProvider(scripted=scripted)
+
+
 def build_runtime(
     audit_subdir: str = "default",
     auto_approve: bool = False,

@@ -15,16 +15,20 @@ controles de supply chain em uma base pequena o suficiente para estudar e adapta
 
 ## Estado atual
 
-- 12 exemplos executáveis.
-- 207 testes unitários coletados pelo pytest.
+- 13 exemplos executáveis.
+- 232 testes unitários coletados pelo pytest.
 - 23 cenários adversariais no eval gate.
-- 13 documentos técnicos em `docs/`.
+- 14 documentos técnicos em `docs/`.
 - 9 ADRs, incluindo neutralidade de provedor e ferramenta de agente.
 - Nenhuma chave de API é necessária para rodar o projeto.
 
-O LLM usado nos exemplos é simulado. Integrações reais com OpenAI, Anthropic, Azure,
-Ollama, modelos locais ou outros provedores devem entrar por adapters, sem contaminar o
-domínio de governança.
+O LLM usado nos exemplos é simulado pelo `MockLlmProvider`. A camada `governance.llm`
+materializa o contrato do [`ADR-009`](docs/adr/ADR-009-neutralidade-de-provedor-llm.md):
+o domínio depende das abstrações `LlmProvider`/`LlmRequest`/`LlmResponse`, e integrações
+reais (OpenAI, Anthropic, Azure, Ollama, modelos locais) entram por adapters de import
+preguiçoso — instaláveis como extras opcionais (ex.: `pip install '.[anthropic]'`) — sem
+contaminar o domínio. `GovernedLlmProvider` aplica orçamento, guardrails, auditoria e
+telemetria à própria inferência.
 
 ## Quickstart
 
@@ -101,6 +105,7 @@ graph TD
 | `registry/` | Catálogo de agentes e ferramentas |
 | `runtime/` | Ponto único de execução governada |
 | `telemetry/` | OpenTelemetry e atributos `gen_ai.*` |
+| `llm/` | Camada provider-neutral: `LlmProvider`, adapters e inferência governada |
 | `anomaly/` | Detecção rule-based de comportamento suspeito |
 | `masking/` | Redação de PII antes de persistir logs |
 | `circuit_breaker/` | Contenção de ferramentas instáveis |
@@ -119,12 +124,12 @@ graph TD
 ```text
 src/governance/      Código dos controles de governança
 policies/            Políticas YAML e exemplos Rego
-examples/            12 demonstrações executáveis
+examples/            13 demonstrações executáveis
 evals/               23 cenários adversariais usados no CI
 docs/                Documentação técnica e ADRs
 threat-model/        Modelo de ameaça STRIDE e OWASP
 runbooks/            Procedimentos operacionais
-tests/               207 testes unitários
+tests/               232 testes unitários
 docker/              Jaeger, Prometheus, Grafana e OPA
 ```
 
@@ -147,6 +152,7 @@ docker/              Jaeger, Prometheus, Grafana e OPA
 | Observabilidade | OpenTelemetry, métricas, OPA, Prometheus, Grafana e Jaeger |
 | Produção simulada | PII masking, circuit breaker, dry-run, forensics, vault simulado, tenancy e CLI |
 | Segurança agêntica | Guardrails, tool integrity, MCP allowlist, AI-BOM, memória governada e A2A assinado |
+| Neutralidade de LLM | `LlmProvider`/`GovernedLlmProvider`, `MockLlmProvider` e adapters lazy (Anthropic, OpenAI, Azure, Ollama) |
 | Compliance | Mapeamento NIST, ISO 42001, EU AI Act, OWASP LLM, OWASP Agentic e NIST GenAI |
 
 ## Documentação

@@ -65,4 +65,8 @@ cli                 Como operar o sistema sem escrever código? (governance kill
 | [08-ciclo-de-vida](08-ciclo-de-vida.md) | Registro, eval gate, promoção, compliance reporter |
 | [09-mapeamento-compliance](09-mapeamento-compliance.md) | NIST AI RMF, ISO 42001, EU AI Act, OWASP LLM/Agentic |
 | [10-arquitetura-producao](10-arquitetura-producao.md) | Stack big tech: SPIFFE, Kafka, Vault/KMS, gVisor, mTLS |
+| [11-guardrails-e-conteudo](11-guardrails-e-conteudo.md) | Guardrails determinísticos: prompt injection, DLP, secret leak |
+| [12-supply-chain-e-mcp](12-supply-chain-e-mcp.md) | Tool integrity, AI-BOM e allowlist de servidores MCP |
+| [13-memoria-e-a2a](13-memoria-e-a2a.md) | Memória governada com quarentena e A2A assinado |
+| [14-camada-llm-agnostica](14-camada-llm-agnostica.md) | `LlmProvider`, adapters lazy e inferência governada (ADR-009) |
 | [adr/](adr/) | Architecture Decision Records (ADR-001 a ADR-009) |

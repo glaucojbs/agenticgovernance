@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 OP_EXECUTE_TOOL = "execute_tool"
 OP_INVOKE_AGENT = "invoke_agent"
 OP_CREATE_AGENT = "create_agent"
+OP_CHAT = "chat"
 
 # Atributos padrão gen_ai.*
 GEN_AI_SYSTEM = "gen_ai.system"
@@ -30,7 +31,9 @@ GEN_AI_AGENT_ID = "gen_ai.agent.id"
 GEN_AI_AGENT_NAME = "gen_ai.agent.name"
 GEN_AI_TOOL_NAME = "gen_ai.tool.name"
 GEN_AI_TOOL_TYPE = "gen_ai.tool.type"
+GEN_AI_PROVIDER_NAME = "gen_ai.provider.name"
 GEN_AI_REQUEST_MODEL = "gen_ai.request.model"
+GEN_AI_RESPONSE_MODEL = "gen_ai.response.model"
 GEN_AI_USAGE_INPUT_TOKENS = "gen_ai.usage.input_tokens"
 GEN_AI_USAGE_OUTPUT_TOKENS = "gen_ai.usage.output_tokens"
 GEN_AI_RESPONSE_FINISH_REASONS = "gen_ai.response.finish_reasons"
@@ -57,6 +60,32 @@ def set_tool_span_attributes(
     span.set_attribute(GEN_AI_TOOL_TYPE, "function")
     if model is not None:
         span.set_attribute(GEN_AI_REQUEST_MODEL, model)
+    if input_tokens is not None:
+        span.set_attribute(GEN_AI_USAGE_INPUT_TOKENS, input_tokens)
+    if output_tokens is not None:
+        span.set_attribute(GEN_AI_USAGE_OUTPUT_TOKENS, output_tokens)
+    if finish_reason is not None:
+        span.set_attribute(GEN_AI_RESPONSE_FINISH_REASONS, [finish_reason])
+
+
+def set_llm_span_attributes(
+    span: Span,
+    *,
+    agent_id: str,
+    model: str,
+    provider: str,
+    system: str = "agentic-governance",
+    input_tokens: int | None = None,
+    output_tokens: int | None = None,
+    finish_reason: str | None = None,
+) -> None:
+    """Aplica os atributos gen_ai.* padrão a um span de inferência (chat)."""
+    span.set_attribute(GEN_AI_SYSTEM, system)
+    span.set_attribute(GEN_AI_OPERATION_NAME, OP_CHAT)
+    span.set_attribute(GEN_AI_AGENT_ID, agent_id)
+    span.set_attribute(GEN_AI_PROVIDER_NAME, provider)
+    span.set_attribute(GEN_AI_REQUEST_MODEL, model)
+    span.set_attribute(GEN_AI_RESPONSE_MODEL, model)
     if input_tokens is not None:
         span.set_attribute(GEN_AI_USAGE_INPUT_TOKENS, input_tokens)
     if output_tokens is not None:

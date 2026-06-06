@@ -42,6 +42,9 @@ class AuditEventType(StrEnum):
     TOOL_INTEGRITY_VIOLATION = "tool_integrity_violation"
     MEMORY_QUARANTINED = "memory_quarantined"
     A2A_MESSAGE_REJECTED = "a2a_message_rejected"
+    # Camada LLM-agnóstica — inferência governada (ADR-009)
+    LLM_INVOKED = "llm_invoked"
+    LLM_BLOCKED = "llm_blocked"
 
 
 class AuditEvent(BaseModel):
