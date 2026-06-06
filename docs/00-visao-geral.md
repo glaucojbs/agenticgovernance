@@ -65,4 +65,4 @@ cli                 Como operar o sistema sem escrever código? (governance kill
 | [08-ciclo-de-vida](08-ciclo-de-vida.md) | Registro, eval gate, promoção, compliance reporter |
 | [09-mapeamento-compliance](09-mapeamento-compliance.md) | NIST AI RMF, ISO 42001, EU AI Act, OWASP LLM/Agentic |
 | [10-arquitetura-producao](10-arquitetura-producao.md) | Stack big tech: SPIFFE, Kafka, Vault/KMS, gVisor, mTLS |
-| [adr/](adr/) | Architecture Decision Records (ADR-001 a ADR-007) |
+| [adr/](adr/) | Architecture Decision Records (ADR-001 a ADR-009) |

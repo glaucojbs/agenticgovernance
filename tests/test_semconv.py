@@ -38,12 +38,12 @@ class TestSemConv:
             agent_id="a",
             agent_name="n",
             tool_name="t",
-            model="claude-opus-4-8",
+            model="test-model-v1",
             input_tokens=10,
             output_tokens=20,
             finish_reason="stop",
         )
-        assert span.attrs[semconv.GEN_AI_REQUEST_MODEL] == "claude-opus-4-8"
+        assert span.attrs[semconv.GEN_AI_REQUEST_MODEL] == "test-model-v1"
         assert span.attrs[semconv.GEN_AI_USAGE_INPUT_TOKENS] == 10
         assert span.attrs[semconv.GEN_AI_USAGE_OUTPUT_TOKENS] == 20
         assert span.attrs[semconv.GEN_AI_RESPONSE_FINISH_REASONS] == ["stop"]

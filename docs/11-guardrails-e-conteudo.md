@@ -56,7 +56,7 @@ sensível original. O masking continua atuando sobre o que é gravado no audit l
 ## Hook LLM opcional (produção)
 
 Os detectores são determinísticos para manter o repo offline e os testes reprodutíveis.
-Em produção, plugue um classificador (Llama Guard, Claude, Azure Content Safety):
+Em produção, plugue um classificador via adapter (modelo local, API gerenciada ou serviço de safety):
 
 ```python
 def llm_guard(text, direction):

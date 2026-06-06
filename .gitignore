@@ -43,5 +43,11 @@ audit_logs/
 *.swp
 *.swo
 
+# Local AI coding tool configuration
+.claude/
+.codex/
+.cursor/
+.windsurf/
+
 # macOS
 .DS_Store

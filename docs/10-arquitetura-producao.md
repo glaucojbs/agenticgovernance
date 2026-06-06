@@ -253,7 +253,7 @@ O `AnomalyDetector` deste repo é rule-based. Em produção de grande escala:
 | Statistical baselines | Detectar desvio de comportamento normal | Z-score, IQR |
 | Isolation Forest | Anomalias multivariadas sem labels | scikit-learn |
 | Seq2Seq / LSTM | Sequências de ações anômalas | PyTorch |
-| LLM-based | "Esta sequência de ações faz sentido?" | Claude API |
+| LLM-based | "Esta sequência de ações faz sentido?" | Classificador LLM via adapter |
 
 O pipeline sugerido:
 ```

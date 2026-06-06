@@ -50,7 +50,7 @@ refresh de compliance (OWASP Agentic Top 10, EU AI Act GPAI, NIST GenAI Profile,
 
 O repositório roda 100% offline, sem chave de API, com testes reprodutíveis. Detectores
 baseados em regras/heurísticas/regex entregam isso e cobrem a maioria dos padrões de injeção
-conhecidos. O caminho de produção (classificador LLM, ex.: Llama Guard, Claude) é exposto
+conhecidos. O caminho de produção (classificador LLM via adapter) é exposto
 como interface plugável (`GuardrailScanner(llm_classifier=...)`), desligada por padrão.
 
 ### Por que fingerprint + assinatura para ferramentas?
@@ -84,7 +84,7 @@ independentemente de como entrou.
 ```python
 # Guardrail com classificador LLM
 def llm_guard(text, direction):
-    verdict = call_llama_guard(text)  # ou Claude, Azure Content Safety...
+    verdict = call_safety_classifier(text)
     return GuardrailVerdict.BLOCK if verdict == "unsafe" else GuardrailVerdict.ALLOW
 
 scanner = GuardrailScanner.with_defaults(llm_classifier=llm_guard)
