@@ -1,4 +1,4 @@
-# ADR-001 — Política como Código (YAML declarativo)
+# ADR-001: Política como Código (YAML declarativo)
 
 **Status:** Aceito  
 **Data:** 2025-06-01  

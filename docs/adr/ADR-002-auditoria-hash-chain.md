@@ -1,4 +1,4 @@
-# ADR-002 — Auditoria com Hash Chain (JSONL append-only)
+# ADR-002: Auditoria com Hash Chain (JSONL append-only)
 
 **Status:** Aceito  
 **Data:** 2025-06-01  
@@ -55,7 +55,7 @@ mas sem a complexidade de consenso distribuído. A verificação é O(n) e deter
 
 **Negativas / Limitações:**
 - Um atacante com acesso irrestrito ao disco pode recriar toda a cadeia
-- Não há garantia de **confidencialidade** — apenas **integridade**
+- Não há garantia de **confidencialidade**: apenas **integridade**
 
 ## Ponto de extensão para produção
 

@@ -1,7 +1,7 @@
 # agent_policy.rego
 #
 # Equivalente Rego das regras em example-readonly-agent.yaml.
-# Ilustrativo — não é executado pelo runtime deste repositório.
+# Ilustrativo: não é executado pelo runtime deste repositório.
 #
 # Para testar: opa eval -d agent_policy.rego -I 'data.governance.allow'
 
@@ -10,7 +10,7 @@ package governance
 import future.keywords.if
 import future.keywords.in
 
-# ── Ferramentas destrutivas — negadas sempre ─────────────────────────────────
+# -- Ferramentas destrutivas: negadas sempre ---------------------------------
 
 destructive_tools := {"delete_files", "drop_table", "wipe_database"}
 
@@ -22,7 +22,7 @@ deny[reason] if {
     )
 }
 
-# ── Segredos exigem escopo explícito ─────────────────────────────────────────
+# -- Segredos exigem escopo explícito -----------------------------------------
 
 deny[reason] if {
     input.tool_name == "read_secrets"
@@ -30,7 +30,7 @@ deny[reason] if {
     reason := "acesso a segredos requer escopo 'read:secrets'"
 }
 
-# ── Risco alto → aprovação humana ────────────────────────────────────────────
+# -- Risco alto → aprovação humana --------------------------------------------
 
 high_risk_levels := {"high", "critical"}
 
@@ -43,7 +43,7 @@ require_approval[reason] if {
     )
 }
 
-# ── E-mail em staging/prod → aprovação ───────────────────────────────────────
+# -- E-mail em staging/prod → aprovação ---------------------------------------
 
 non_dev_envs := {"staging", "prod"}
 
@@ -55,7 +55,7 @@ require_approval[reason] if {
     reason := "envio de e-mail em produção requer aprovação"
 }
 
-# ── Leitura de arquivos — permitida ──────────────────────────────────────────
+# -- Leitura de arquivos: permitida ------------------------------------------
 
 allow if {
     input.tool_name in {"read_files", "list_files"}
@@ -65,7 +65,7 @@ allow if {
     not require_approval[_]
 }
 
-# ── Leitura de banco — permitida ─────────────────────────────────────────────
+# -- Leitura de banco: permitida ---------------------------------------------
 
 allow if {
     input.tool_name in {"query_database", "read_database"}
@@ -75,7 +75,7 @@ allow if {
     not require_approval[_]
 }
 
-# ── Decisão final ─────────────────────────────────────────────────────────────
+# -- Decisão final -------------------------------------------------------------
 
 decision := "DENY"         if count(deny) > 0
 decision := "REQUIRE_APPROVAL" if count(deny) == 0; count(require_approval) > 0

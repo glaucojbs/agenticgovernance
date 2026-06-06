@@ -1,4 +1,4 @@
-# Modelo de Ameaça — Sistema de Governança Agêntica
+# Modelo de Ameaça: Sistema de Governança Agêntica
 
 **Versão:** 2.0  
 **Data:** 2026-06-04  
@@ -45,7 +45,7 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 
 ## Análise STRIDE
 
-### S — Spoofing (Falsificação de identidade)
+### S: Spoofing (Falsificação de identidade)
 
 | Ameaça | Cenário | Mitigação | Risco residual |
 |--------|---------|-----------|---------------|
@@ -55,7 +55,7 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 
 \* Risco residual em ambientes de múltiplos processos sem SPIFFE.
 
-### T — Tampering (Adulteração)
+### T: Tampering (Adulteração)
 
 | Ameaça | Cenário | Mitigação | Risco residual |
 |--------|---------|-----------|---------------|
@@ -65,7 +65,7 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 
 \* Com `SignedAuditLogger`: sem a chave privada, impossível recriar assinaturas válidas. Em produção, manter chave no KMS/HSM.
 
-### R — Repudiation (Repúdio)
+### R: Repudiation (Repúdio)
 
 | Ameaça | Cenário | Mitigação | Risco residual |
 |--------|---------|-----------|---------------|
@@ -74,7 +74,7 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 
 \* Sem assinatura criptográfica, o campo `decided_by` é auto-declarado.
 
-### I — Information Disclosure (Divulgação de informação)
+### I: Information Disclosure (Divulgação de informação)
 
 | Ameaça | Cenário | Mitigação | Risco residual |
 |--------|---------|-----------|---------------|
@@ -84,7 +84,7 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 
 \* Com `PIIMasker.with_defaults()` ativo no `GovernanceConfig`. Adicionar padrões customizados para dados específicos do domínio.
 
-### D — Denial of Service (Negação de serviço)
+### D: Denial of Service (Negação de serviço)
 
 | Ameaça | Cenário | Mitigação | Risco residual |
 |--------|---------|-----------|---------------|
@@ -94,7 +94,7 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 | D4 | Flooding de pedidos de aprovação | Rate limit por minuto no BudgetGuard | Baixo |
 | D5 | Ferramenta com falhas cascateia para outros agentes | **CircuitBreaker** por ferramenta (OPEN após N falhas) | Baixo |
 
-### E — Elevation of Privilege (Escalada de privilégio)
+### E: Elevation of Privilege (Escalada de privilégio)
 
 | Ameaça | Cenário | Mitigação | Risco residual |
 |--------|---------|-----------|---------------|
@@ -106,9 +106,9 @@ não-confiável (o agente) cruza para sistemas confiáveis (ferramentas, audit l
 
 ---
 
-## OWASP Top 10 for LLM — Análise detalhada
+## OWASP Top 10 for LLM: Análise detalhada
 
-### LLM01 — Prompt Injection
+### LLM01: Prompt Injection
 
 **Cenário:** Um input malicioso instrui o agente a executar `delete_files`.
 
@@ -121,7 +121,7 @@ não pode contornar a política.
 um prompt injection pode induzi-lo a sobrescrever arquivos. Mitigação: scope mínimo
 e `max` conditions nos parâmetros (ex.: limitar o path).
 
-### LLM04 — Model Denial of Service
+### LLM04: Model Denial of Service
 
 **Cenário:** Adversário envia prompts que forçam o agente a fazer milhares de
 chamadas de ferramenta.
@@ -129,7 +129,7 @@ chamadas de ferramenta.
 **Mitigação:** `BudgetGuard` com `max_calls`, `max_calls_per_minute` e `max_tokens`.
 Após o limite, a próxima chamada é bloqueada e auditada.
 
-### LLM08 — Excessive Agency
+### LLM08: Excessive Agency
 
 **Cenário:** Agente recebe mais permissões do que precisa e abusa delas.
 
@@ -142,10 +142,10 @@ só pode fazer o que foi explicitamente autorizado.
 
 | Ameaça anterior | Mitigação implementada |
 |----------------|----------------------|
-| T1 — adulteração de log | ✅ `SignedAuditLogger` + Ed25519 (`src/governance/signing/`) |
-| I2 — dados pessoais no log | ✅ `PIIMasker` com padrões built-in + custom (`src/governance/masking/`) |
-| D5 — cascata de falhas | ✅ `CircuitBreaker` por ferramenta (`src/governance/circuit_breaker/`) |
-| E5 — isolamento multi-tenant | ✅ `TenantRuntime` + `Tenant` (`src/governance/tenancy/`) |
+| T1: adulteração de log | ✅ `SignedAuditLogger` + Ed25519 (`src/governance/signing/`) |
+| I2: dados pessoais no log | ✅ `PIIMasker` com padrões built-in + custom (`src/governance/masking/`) |
+| D5: cascata de falhas | ✅ `CircuitBreaker` por ferramenta (`src/governance/circuit_breaker/`) |
+| E5: isolamento multi-tenant | ✅ `TenantRuntime` + `Tenant` (`src/governance/tenancy/`) |
 
 ## Mitigações ainda não implementadas neste repositório
 
@@ -158,10 +158,10 @@ só pode fazer o que foi explicitamente autorizado.
 
 ---
 
-## Ameaças da era agêntica (Fase 8 — OWASP Top 10 for Agentic Applications)
+## Ameaças da era agêntica
 
 Vetores específicos de sistemas agênticos, onde a ação pode ser "autorizada" mas o ataque
-está no **conteúdo** ou na **proveniência** — não cobertos por RBAC/política:
+está no **conteúdo** ou na **proveniência**: não cobertos por RBAC/política:
 
 | Ameaça (OWASP Agentic) | Vetor | Mitigação |
 |------------------------|-------|-----------|
@@ -171,7 +171,7 @@ está no **conteúdo** ou na **proveniência** — não cobertos por RBAC/polít
 | ASI09 Memory Poisoning | conteúdo malicioso persistido na memória | Trust labels + quarentena na recuperação (`memory/`) |
 | ASI04 Insecure Inter-Agent Comm | forja/replay/tamper de mensagens A2A | Canal assinado Ed25519 + nonce (`a2a/`) |
 
-Cada vetor é exercitado por cenários adversariais (I–L) no eval gate. Ver
+Cada vetor é exercitado por cenários adversariais (I-L) no eval gate. Ver
 [ADR-008](../docs/adr/ADR-008-defesas-agenticas.md).
 
 ## Declaração de risco residual

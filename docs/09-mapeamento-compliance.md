@@ -1,4 +1,4 @@
-# 09 — Mapeamento de Compliance
+# 09: Mapeamento de Compliance
 
 > **Aviso importante:** Este mapeamento é **ilustrativo e educacional**.
 > Não constitui aconselhamento jurídico, de conformidade regulatória ou de certificação.
@@ -11,20 +11,20 @@
 
 | Função | Sub-função | Controle neste repositório |
 |--------|-----------|---------------------------|
-| **GOVERN** | Políticas organizacionais | `policies/*.yaml` — regras declarativas versionadas |
-| **GOVERN** | Papéis e responsabilidades | `docs/02-modelo-de-governanca.md` — RACI |
-| **GOVERN** | Ciclo de vida de IA | `src/governance/registry/` — registered/approved/deprecated |
-| **MAP** | Classificação de risco | `src/governance/policy/engine.py` — `RiskLevel` enum |
-| **MAP** | Identificação de partes interessadas | `AgentIdentity.owner` — humano responsável rastreável |
-| **MEASURE** | Avaliação contínua | `evals/run_evals.py` — eval gate automatizado |
-| **MEASURE** | Monitoramento de comportamento | `src/governance/audit/` — every action logged |
+| **GOVERN** | Políticas organizacionais | `policies/*.yaml`: regras declarativas versionadas |
+| **GOVERN** | Papéis e responsabilidades | `docs/02-modelo-de-governanca.md`: RACI |
+| **GOVERN** | Ciclo de vida de IA | `src/governance/registry/`: registered/approved/deprecated |
+| **MAP** | Classificação de risco | `src/governance/policy/engine.py`: `RiskLevel` enum |
+| **MAP** | Identificação de partes interessadas | `AgentIdentity.owner`: humano responsável rastreável |
+| **MEASURE** | Avaliação contínua | `evals/run_evals.py`: eval gate automatizado |
+| **MEASURE** | Monitoramento de comportamento | `src/governance/audit/`: every action logged |
 | **MANAGE** | Respostas a incidentes | `runbooks/incident-response.md` |
 | **MANAGE** | Contenção de impacto | `src/governance/budget/` + kill switch |
 | **MANAGE** | Revogação de acesso | `IdentityManager.revoke()` + `revoke_scope()` |
 
 ---
 
-## ISO/IEC 42001:2023 — AI Management System
+## ISO/IEC 42001:2023: AI Management System
 
 | Cláusula | Requisito | Controle neste repositório |
 |----------|-----------|---------------------------|
@@ -32,7 +32,7 @@
 | 6.2 | Objetivos e planejamento | `docs/02-modelo-de-governanca.md` |
 | 8.2 | Ciclo de vida do sistema de IA | `docs/08-ciclo-de-vida.md` |
 | 8.3 | Dados para sistemas de IA | Auditoria de todas as ações sobre dados |
-| 8.4 | Registro e documentação | `src/governance/audit/` — audit trail completo |
+| 8.4 | Registro e documentação | `src/governance/audit/`: audit trail completo |
 | 9.1 | Monitoramento e avaliação | `evals/` + `audit/logger.py` |
 | 10.1 | Melhoria contínua | Eval gate como portão de regressão |
 
@@ -42,14 +42,14 @@
 
 | Artigo / Requisito | Categoria | Controle neste repositório |
 |-------------------|-----------|---------------------------|
-| Art. 9 — Risk Management System | Alto risco | `RiskLevel` + `ApprovalGate` + kill switch |
-| Art. 10 — Data Governance | Alto risco | Auditoria de acesso a dados |
-| Art. 12 — Record-keeping | Alto risco | Audit log JSONL com hash chain |
-| Art. 13 — Transparency | Alto risco | `AgentIdentity.owner` + delegation chain |
-| Art. 14 — Human Oversight | Alto risco | `ApprovalGate` HITL + kill switch |
-| Art. 15 — Accuracy & Robustness | Alto risco | Budget guard + timeout + eval gate |
-| Art. 26 — Obligations for deployers | Qualquer risco | Registry + lifecycle management |
-| Art. 71 — General purpose AI (GPAI) | GPAI | Escopos explícitos + default-deny |
+| Art. 9: Risk Management System | Alto risco | `RiskLevel` + `ApprovalGate` + kill switch |
+| Art. 10: Data Governance | Alto risco | Auditoria de acesso a dados |
+| Art. 12: Record-keeping | Alto risco | Audit log JSONL com hash chain |
+| Art. 13: Transparency | Alto risco | `AgentIdentity.owner` + delegation chain |
+| Art. 14: Human Oversight | Alto risco | `ApprovalGate` HITL + kill switch |
+| Art. 15: Accuracy & Robustness | Alto risco | Budget guard + timeout + eval gate |
+| Art. 26: Obligations for deployers | Qualquer risco | Registry + lifecycle management |
+| Art. 71: General purpose AI (GPAI) | GPAI | Escopos explícitos + default-deny |
 
 ---
 
@@ -70,7 +70,7 @@
 
 ---
 
-## OWASP Top 10 for Agentic AI (2025 — draft)
+## OWASP Top 10 for Agentic AI (2025: draft)
 
 | # | Vulnerabilidade | Mitigação neste repositório |
 |---|----------------|----------------------------|
@@ -94,19 +94,19 @@ mapeia eventos do audit log para estes controles (framework `OWASP Agentic`):
 
 | ID | Ameaça | Defesa neste repositório |
 |----|--------|--------------------------|
-| ASI01 | **Agent Goal Hijacking** | Guardrails de conteúdo (prompt injection in/out) — `guardrails/` |
+| ASI01 | **Agent Goal Hijacking** | Guardrails de conteúdo (prompt injection in/out): `guardrails/` |
 | ASI02 | **Identity & Privilege Abuse** | Escopos explícitos + cadeia de delegação + `ACTION_DENIED` |
-| ASI04 | **Insecure Inter-Agent Communication** | Canal A2A assinado + nonce — `a2a/` |
-| ASI06 | **Tool Misuse & Exploitation** | Integridade de ferramentas + guardrails — `supply_chain/` |
-| ASI07 | **Agentic Supply Chain** | Fingerprint assinada + allowlist MCP + AI-BOM — `supply_chain/` |
-| ASI09 | **Memory & Context Poisoning** | Memória governada + quarentena — `memory/` |
+| ASI04 | **Insecure Inter-Agent Communication** | Canal A2A assinado + nonce: `a2a/` |
+| ASI06 | **Tool Misuse & Exploitation** | Integridade de ferramentas + guardrails: `supply_chain/` |
+| ASI07 | **Agentic Supply Chain** | Fingerprint assinada + allowlist MCP + AI-BOM: `supply_chain/` |
+| ASI09 | **Memory & Context Poisoning** | Memória governada + quarentena: `memory/` |
 
-## EU AI Act — obrigações GPAI (em vigor desde ago/2025)
+## EU AI Act: obrigações GPAI (em vigor desde ago/2025)
 
 | Obrigação (Art.53/55) | Evidência |
 |-----------------------|-----------|
-| Documentação técnica / model card | `generate_model_card()` — `compliance/model_card.py` |
-| Inventário de componentes | AI-BOM — `supply_chain/aibom.py` |
+| Documentação técnica / model card | `generate_model_card()`: `compliance/model_card.py` |
+| Inventário de componentes | AI-BOM: `supply_chain/aibom.py` |
 | Post-market monitoring | Audit log + telemetria + anomaly detector |
 | Reporte de incidentes / mitigação de risco sistêmico | `GUARDRAIL_BLOCKED`, kill switch, runbooks |
 

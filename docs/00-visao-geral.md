@@ -1,4 +1,4 @@
-# 00 — Visão Geral
+# 00: Visão Geral
 
 ## O problema
 
@@ -16,12 +16,12 @@ nenhuma visibilidade centralizada, nenhum mecanismo de revogação, nenhum contr
 ## O que este repositório oferece
 
 Um **conjunto de componentes de governança executáveis** que qualquer equipe pode clonar,
-adaptar e colocar em produção. Os componentes são ortogonais e composáveis — adote apenas
+adaptar e colocar em produção. Os componentes são ortogonais e composáveis: adote apenas
 o que precisar.
 
 ```
 Componente          O que ele resolve
-──────────────────  ─────────────────────────────────────────────────────────
+------------------  ---------------------------------------------------------
 identity            Quem é este agente? Ele está autenticado?
 policy              O que este agente tem permissão de fazer?
                     (motor YAML + OPA client + condições temporais + dry-run)
@@ -30,7 +30,7 @@ signing             As entradas do log foram adulteradas? (Ed25519 por entrada)
 budget              Quanto este agente gastou? Ele está dentro dos limites?
 approval            Esta ação precisa de aprovação humana? (HITL + M-de-N)
 registry            Este agente foi avaliado e aprovado para este ambiente?
-runtime             Ponto único de execução — orquestra todos os controles.
+runtime             Ponto único de execução: orquestra todos os controles.
                     (GovernanceConfig para injeção limpa de capacidades)
 telemetry           O que está acontecendo agora? (OTEL traces + métricas)
 anomaly             Este padrão de comportamento é suspeito? (regras em tempo real)

@@ -1,4 +1,4 @@
-# ADR-008 — Defesas da era agêntica (OWASP Top 10 for Agentic Applications)
+# ADR-008: Defesas da era agêntica (OWASP Top 10 for Agentic Applications)
 
 **Status:** Aceito
 **Data:** 2026-06-06
@@ -13,32 +13,32 @@ cobrem o que um agente está **autorizado** a fazer. Eles não cobrem uma classe
 ameaças específica de sistemas agênticos, formalizada pela **OWASP Top 10 for Agentic
 Applications** (publicada em dezembro de 2025):
 
-- **ASI01 Agent Goal Hijacking** — instruções maliciosas escondidas em conteúdo externo
+- **ASI01 Agent Goal Hijacking**: instruções maliciosas escondidas em conteúdo externo
   ou em saídas de ferramentas que sequestram o objetivo do agente (prompt injection indireto).
-- **ASI04 Insecure Inter-Agent Communication** — mensagens entre agentes sem autenticidade,
+- **ASI04 Insecure Inter-Agent Communication**: mensagens entre agentes sem autenticidade,
   autorização ou proteção contra replay.
-- **ASI06/ASI07 Tool Misuse & Agentic Supply Chain** — ferramentas/servidores MCP
+- **ASI06/ASI07 Tool Misuse & Agentic Supply Chain**: ferramentas/servidores MCP
   comprometidos, descrições "envenenadas" para enganar o agente (tool poisoning).
-- **ASI09 Memory & Context Poisoning** — conteúdo não confiável persistido na memória
+- **ASI09 Memory & Context Poisoning**: conteúdo não confiável persistido na memória
   que re-contamina o raciocínio em recuperações futuras.
 
 Esses vetores não são endereçados por RBAC/política, porque a ação solicitada pode ser,
-em si, "permitida" — o ataque está no **conteúdo** e na **proveniência**, não na autorização.
+em si, "permitida": o ataque está no **conteúdo** e na **proveniência**, não na autorização.
 
 ## Decisão
 
-Adicionamos a Fase 8 com quatro defesas, plugáveis no `GovernedAgentRuntime` via
+Adicionamos quatro defesas plugáveis no `GovernedAgentRuntime` via
 `GovernanceConfig` (campos opcionais, retrocompatíveis):
 
-1. **Guardrails de conteúdo** (`src/governance/guardrails/`) — inspeção determinística
+1. **Guardrails de conteúdo** (`src/governance/guardrails/`): inspeção determinística
    de entrada e saída (prompt injection, jailbreak, unicode oculto, DLP de egress, secret
    leak), com hook LLM **opcional** desligado por padrão.
-2. **Integridade de ferramentas + MCP** (`src/governance/supply_chain/`) — fingerprint
+2. **Integridade de ferramentas + MCP** (`src/governance/supply_chain/`): fingerprint
    assinada (Ed25519, reaproveitando o `AuditSigner`), detecção de drift/poisoning,
    allowlist de servidores MCP e geração de AI-BOM.
-3. **Memória governada** (`src/governance/memory/`) — rótulos de confiança por proveniência
+3. **Memória governada** (`src/governance/memory/`): rótulos de confiança por proveniência
    e quarentena de conteúdo envenenado na recuperação (reusa os guardrails).
-4. **Comunicação A2A assinada** (`src/governance/a2a/`) — mensagens Ed25519 com capability
+4. **Comunicação A2A assinada** (`src/governance/a2a/`): mensagens Ed25519 com capability
    token (escopo + validade) e nonce anti-replay.
 
 Além disso: alinhamento às **OTel GenAI Semantic Conventions** (`gen_ai.*`, aditivo) e
@@ -56,7 +56,7 @@ como interface plugável (`GuardrailScanner(llm_classifier=...)`), desligada por
 ### Por que fingerprint + assinatura para ferramentas?
 
 Tool poisoning clássico reescreve a **descrição** de uma ferramenta para induzir o agente
-a um comportamento malicioso — sem alterar a autorização. A fingerprint cobre metadados
+a um comportamento malicioso: sem alterar a autorização. A fingerprint cobre metadados
 (descrição, escopo, risco) e o código da implementação; a assinatura impede que um atacante
 com acesso ao registro de pins forje um novo estado "confiável".
 
@@ -69,14 +69,14 @@ independentemente de como entrou.
 ## Consequências
 
 **Positivas:**
-- Cobertura explícita do OWASP Agentic Top 10, verificada por 8 cenários adversariais (I–L).
-- Tudo opcional e retrocompatível — runtime sem a config da Fase 8 é idêntico ao anterior.
+- Cobertura explícita do OWASP Agentic Top 10, verificada por 8 cenários adversariais (I-L).
+- Tudo opcional e retrocompatível: runtime sem essa configuração é idêntico ao anterior.
 - Interoperabilidade de observabilidade via `gen_ai.*` (Datadog/Honeycomb/Grafana/LangChain).
 
 **Negativas / Limitações:**
 - Guardrails determinísticos têm falsos negativos/positivos; o hook LLM é recomendado em prod.
 - Fingerprint por código depende de `inspect.getsource`; quando indisponível (builtins/exec),
-  cai para `module.qualname` — a detecção por **metadados** permanece robusta.
+  cai para `module.qualname`: a detecção por **metadados** permanece robusta.
 - Memória e nonces de A2A são mantidos em processo (produção: store durável + Redis para nonces).
 
 ## Pontos de extensão para produção

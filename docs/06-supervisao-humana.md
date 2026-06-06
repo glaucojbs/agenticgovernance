@@ -1,4 +1,4 @@
-# 06 — Supervisão Humana
+# 06: Supervisão Humana
 
 ## Human-in-the-Loop vs. Human-on-the-Loop
 
@@ -48,7 +48,7 @@ gate = ApprovalGate(auto_approve=True)
 
 ## Aprovação M-de-N (NApprovalGate)
 
-Para operações críticas que exigem consenso de múltiplos aprovadores — ex.:
+Para operações críticas que exigem consenso de múltiplos aprovadores: ex.:
 wipe de banco de dados em produção, deploy de mudança urgente, rotação massiva
 de credenciais:
 
@@ -105,7 +105,7 @@ governance kill-switch disable
 ## Kill switch global (toda a plataforma)
 
 ```python
-# Via TenantRuntime — afeta TODOS os tenants simultaneamente
+# Via TenantRuntime: afeta TODOS os tenants simultaneamente
 platform = TenantRuntime(registry)
 count = platform.activate_global_kill_switch("incidente P0 na plataforma")
 print(f"Kill switch ativado em {count} tenants")
@@ -120,8 +120,8 @@ Veja o runbook completo: [`runbooks/kill-switch.md`](../runbooks/kill-switch.md)
 
 | Nível | Política padrão | Aprovador | Tempo de resposta |
 |-------|----------------|-----------|------------------|
-| `low` | ALLOW (sem aprovação) | — | — |
-| `medium` | Depende da ferramenta/ambiente | 1 aprovador | — |
+| `low` | ALLOW (sem aprovação) | N/A | N/A |
+| `medium` | Depende da ferramenta/ambiente | 1 aprovador | N/A |
 | `high` | REQUIRE_APPROVAL (1-de-1) | Eng. senior ou on-call | ≤ 15 minutos |
 | `critical` | REQUIRE_APPROVAL (M-de-N) | ≥ 2 aprovadores | ≤ 5 minutos |
 
@@ -143,8 +143,8 @@ detector = AnomalyDetector(
 ```
 
 Alertas gerados:
-- `WARNING high_call_rate` — velocidade acima do limite
-- `WARNING high_deny_rate` — taxa de negação suspeita
-- `CRITICAL consecutive_denies` — possível brute-force de ferramentas
-- `INFO off_hours_activity` — ação fora do horário comercial
-- `INFO new_tool_first_use` — agente usando ferramenta pela primeira vez
+- `WARNING high_call_rate`: velocidade acima do limite
+- `WARNING high_deny_rate`: taxa de negação suspeita
+- `CRITICAL consecutive_denies`: possível brute-force de ferramentas
+- `INFO off_hours_activity`: ação fora do horário comercial
+- `INFO new_tool_first_use`: agente usando ferramenta pela primeira vez

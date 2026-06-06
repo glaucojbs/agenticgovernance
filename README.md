@@ -1,21 +1,30 @@
-# Governança Agêntica — Repositório de Referência
+# Governança Agêntica
 
-> Implementação de referência executável para governança de agentes de IA autônomos.
-> Da camada básica de controle até o nível big tech: privilégio mínimo, política como código,
-> auditoria criptograficamente verificável, supervisão humana, observabilidade e detecção de anomalias.
-
----
+> Implementação de referência para governança de agentes de IA autônomos.
+> O projeto é executável, offline por padrão e neutro em relação a provedores de LLM.
 
 ## Por que este repositório existe
 
-Agentes de IA autônomos podem executar ações de alto impacto — apagar dados, enviar e-mails,
-modificar infraestrutura — sem que um humano esteja presente em cada decisão. Sem governança
-adequada, isso cria riscos sérios de segurança, privacidade e conformidade.
+Agentes de IA podem ler dados sensíveis, chamar APIs, enviar comunicações, modificar
+infraestrutura e delegar tarefas para outros agentes. Sem uma camada de governança, cada
+agente vira uma superfície de ataque separada, com pouca visibilidade e revogação difícil.
 
-Este repositório não é um produto. É um **exemplo didático, robusto e auditável** que um time
-pode clonar, rodar em minutos e usar como base para sua própria governança de IA agêntica.
+Este repositório mostra uma forma prática de controlar esse risco. Ele reúne runtime,
+políticas, identidade, auditoria, aprovação humana, observabilidade, evals adversariais e
+controles de supply chain em uma base pequena o suficiente para estudar e adaptar.
 
----
+## Estado atual
+
+- 12 exemplos executáveis.
+- 207 testes unitários coletados pelo pytest.
+- 23 cenários adversariais no eval gate.
+- 13 documentos técnicos em `docs/`.
+- 9 ADRs, incluindo neutralidade de provedor e ferramenta de agente.
+- Nenhuma chave de API é necessária para rodar o projeto.
+
+O LLM usado nos exemplos é simulado. Integrações reais com OpenAI, Anthropic, Azure,
+Ollama, modelos locais ou outros provedores devem entrar por adapters, sem contaminar o
+domínio de governança.
 
 ## Quickstart
 
@@ -23,219 +32,142 @@ pode clonar, rodar em minutos e usar como base para sua própria governança de 
 git clone https://github.com/glaucojbs/agenticgovernance
 cd agenticgovernance
 
-make setup          # cria virtualenv + instala deps
-make demo           # roda os 12 exemplos em sequência
-make test           # testes unitários com cobertura
-make eval           # eval gate (23 cenários adversariais)
+make setup
+make demo
+make test
+make eval
 ```
 
-Nenhuma chave de API é necessária. O "LLM" dos exemplos é um agente **simulado** (mock) plugável.
-
-### Stack de observabilidade (opcional, requer Docker)
+Com Docker, também é possível subir a stack de observabilidade:
 
 ```bash
-make stack          # sobe Jaeger + Prometheus + Grafana + OPA
-make demo-observability  # roda exemplos enviando traces para Jaeger
+make stack
+make demo-observability
 ```
 
-Serviços disponíveis após `make stack`:
+Serviços locais:
 
-| Serviço | URL | Para que serve |
-|---------|-----|---------------|
-| Jaeger | http://localhost:16686 | Distributed traces de cada ação |
-| Grafana | http://localhost:3000 (admin/admin) | Dashboard de governança pré-configurado |
-| Prometheus | http://localhost:9090 | Métricas de policy/budget/approvals |
-| OPA | http://localhost:8181 | Motor de política Rego em produção |
+| Serviço | URL | Uso |
+|---------|-----|-----|
+| Jaeger | http://localhost:16686 | Traces por ação |
+| Grafana | http://localhost:3000 | Dashboard de governança |
+| Prometheus | http://localhost:9090 | Métricas de runtime |
+| OPA | http://localhost:8181 | Política Rego via REST |
 
----
+## Arquitetura em uma frase
 
-## Arquitetura
+Toda ação de agente passa pelo `GovernedAgentRuntime`. O runtime valida identidade,
+registry, política, orçamento, aprovação humana, guardrails, integridade de ferramenta e
+kill switch antes de executar qualquer ferramenta.
 
 ```mermaid
 graph TD
-    H["👤 Humano / Operador"] -->|define políticas| P["📋 Policy Engine\n(YAML ou OPA)"]
-    H -->|aprova ações de alto risco| AP["🔐 Approval Gate\n(HITL)"]
-    H -->|ativa quando necessário| KS["🚨 Kill Switch"]
+    H["Humano / Operador"] --> P["Policy Engine"]
+    H --> AP["Approval Gate"]
+    H --> KS["Kill Switch"]
 
     subgraph "GovernedAgentRuntime"
-        direction TB
-        KS -->|bloqueia tudo| RT["⚙️ Runtime"]
-        ID["🪪 Identity\n& Delegation"] --> RT
+        KS --> RT["Runtime"]
+        ID["Identity e Delegation"] --> RT
         P --> RT
-        BU["💰 Budget Guard"] --> RT
+        BU["Budget Guard"] --> RT
         AP --> RT
-        REG["📦 Registry\n(ciclo de vida)"] --> RT
-        RT -->|JSONL + hash + Ed25519| AU["🔍 Audit Log\n(assinado)"]
-        RT -->|spans + métricas| TEL["📡 OpenTelemetry"]
-        RT -->|pós-execução| AN["🔎 Anomaly Detector"]
+        REG["Registry"] --> RT
+        GR["Guardrails"] --> RT
+        SC["Tool Integrity e MCP"] --> RT
+        RT --> AU["Audit Log assinado"]
+        RT --> TEL["OpenTelemetry"]
+        RT --> AN["Anomaly Detector"]
     end
 
-    AG["🤖 Agente Principal"] -->|ActionRequest| RT
-    RT -->|executa com timeout| T["🔧 Ferramenta"]
-    AG -->|delega| SA["🤖 Sub-Agente"]
-    SA -->|ActionRequest + cadeia| RT
-
-    TEL --> JAE["Jaeger\n(traces)"]
-    TEL --> PROM["Prometheus\n(métricas)"]
-    PROM --> GRAF["Grafana\n(dashboards)"]
-    AN -->|alerta| SLACK["Slack / PagerDuty"]
-    P <-->|REST + fallback| OPA["OPA Server\n(Rego)"]
+    AG["Agente"] --> RT
+    RT --> T["Ferramenta"]
+    TEL --> JAE["Jaeger"]
+    TEL --> PROM["Prometheus"]
+    PROM --> GRAF["Grafana"]
+    P <--> OPA["OPA"]
 ```
 
-### Control Plane vs. Data Plane
+## Componentes principais
 
-| Camada | Componentes | Responsabilidade |
-|--------|------------|-----------------|
-| **Control Plane** | Policy Engine, Registry, Identity, Approval Gate | Define *o que pode acontecer* |
-| **Data Plane** | Runtime, Budget Guard, Audit Log, Kill Switch, Telemetry, Anomaly | Controla *o que acontece* em tempo real |
+| Componente | Responsabilidade |
+|------------|------------------|
+| `identity/` | Identidade, escopos, credenciais e cadeia de delegação |
+| `policy/` | Motor YAML, OPA client, dry-run e condições temporais |
+| `audit/` | Log JSONL append-only com hash chain |
+| `signing/` | Assinatura Ed25519 das entradas de auditoria |
+| `approval/` | Aprovação humana, M-de-N e kill switch |
+| `budget/` | Limites de custo, tokens, chamadas e rate limit |
+| `registry/` | Catálogo de agentes e ferramentas |
+| `runtime/` | Ponto único de execução governada |
+| `telemetry/` | OpenTelemetry e atributos `gen_ai.*` |
+| `anomaly/` | Detecção rule-based de comportamento suspeito |
+| `masking/` | Redação de PII antes de persistir logs |
+| `circuit_breaker/` | Contenção de ferramentas instáveis |
+| `guardrails/` | Prompt injection, DLP de egress e secret leak |
+| `supply_chain/` | Fingerprint de ferramentas, allowlist MCP e AI-BOM |
+| `memory/` | Memória com rótulos de confiança e quarentena |
+| `a2a/` | Comunicação entre agentes com assinatura e anti-replay |
+| `vault/` | Store simulado de segredos com TTL, versão e rotação |
+| `forensics/` | Replay de incidentes a partir do audit log |
+| `compliance/` | Evidências e model card |
+| `tenancy/` | Isolamento multi-tenant |
+| `cli/` | Operação por linha de comando |
 
----
+## Estrutura do repositório
 
-## Os 7 Princípios Materializados
-
-| # | Princípio | Onde está no código |
-|---|-----------|---------------------|
-| 1 | Privilégio mínimo por padrão | `policies/default-deny.yaml` + `policy/engine.py` |
-| 2 | Política como código | `src/governance/policy/` + `policies/` + OPA client |
-| 3 | Auditabilidade total | `src/governance/audit/` (JSONL + hash chain + Ed25519) |
-| 4 | Supervisão humana proporcional ao risco | `src/governance/approval/` + `examples/04_*` |
-| 5 | Contenção do raio de impacto | `src/governance/budget/` + timeout + sandbox |
-| 6 | Identidade verificável e delegação | `src/governance/identity/` |
-| 7 | Governança de ciclo de vida | `src/governance/registry/` + `evals/` |
-
----
-
-## Estrutura
-
-```
-src/governance/
-  identity/       — AgentIdentity, escopos, DelegationChain, credenciais
-  policy/         — PolicyEngine YAML + OpaPolicyEngine + PolicyDryRun + condições temporais
-  audit/          — AuditLogger append-only JSONL com hash chain SHA-256
-  signing/        — AuditSigner Ed25519 + SignedAuditLogger
-  approval/       — ApprovalGate HITL + NApprovalGate (M-de-N) + kill switch global
-  budget/         — BudgetGuard (custo, tokens, calls, rate limit)
-  registry/       — ToolRegistry + AgentRegistry (registered/approved/deprecated)
-  runtime/        — GovernedAgentRuntime + GovernanceConfig (injeção limpa)
-  telemetry/      — OpenTelemetry (spans + métricas) + semconv GenAI (gen_ai.*)
-  anomaly/        — AnomalyDetector (velocity, deny rate, consecutive denies, off-hours)
-  masking/        — PIIMasker (e-mail, CPF, JWT, IP, cartão, padrões custom)
-  circuit_breaker/— CircuitBreaker por ferramenta (CLOSED/OPEN/HALF_OPEN)
-  guardrails/     — GuardrailScanner (prompt injection, DLP de egress, secret leak) [Fase 8]
-  supply_chain/   — ToolIntegrityRegistry + McpServerAllowlist + AI-BOM [Fase 8]
-  memory/         — GovernedMemoryStore (trust labels + quarentena anti-poisoning) [Fase 8]
-  a2a/            — SignedAgentChannel (mensagens assinadas + nonce anti-replay) [Fase 8]
-  vault/          — SecretStore (TTL, versões, access policy, rotação, audit)
-  forensics/      — IncidentReplayer (timeline, negações consecutivas, resumo)
-  compliance/     — ComplianceReporter + ModelCard (NIST/ISO/EU AI Act/OWASP Agentic)
-  tenancy/        — Tenant + TenantRegistry + TenantRuntime (isolamento multi-tenant)
-  cli/            — CLI operacional (kill-switch, audit, policy, forensics, report, guardrail, aibom)
-
-policies/         — YAML de política (versionados, testáveis, default-deny)
-docker/           — Prometheus, Grafana, OPA configs para make stack
-examples/
-  01_ungoverned_agent/       — anti-exemplo: agente sem nenhum controle
-  02_governed_agent/         — mesmo agente sob governança completa + audit trail
-  03_multi_agent_delegation/ — delegação rastreável + escalada de privilégio bloqueada
-  04_high_risk_approval/     — HITL + kill switch de emergência
-  05_production_stack/       — OTEL + Ed25519 + Anomaly + OPA
-  06_forensics/              — reconstrução de timeline de incidente
-  07_multi_tenant/           — três equipes isoladas + kill switch local e global
-  08_compliance_report/      — PII masking + M-de-N approval + dry-run + evidências
-  09_guardrails/             — prompt injection (in/out) + DLP de egress [Fase 8]
-  10_tool_integrity/         — tool poisoning + allowlist MCP + AI-BOM [Fase 8]
-  11_memory_a2a/             — quarentena de memória + A2A assinado (replay/tamper) [Fase 8]
-  12_standards_report/       — OTel GenAI + OWASP Agentic + GPAI model card [Fase 8]
-evals/          — 23 cenários adversariais (eval gate do CI)
-docs/           — 13 documentos pt-BR com diagramas Mermaid
-threat-model/   — STRIDE + OWASP Top 10 LLM/Agentic
-runbooks/       — kill switch, incident response, revogação de credenciais
-tests/          — 207 testes unitários
+```text
+src/governance/      Código dos controles de governança
+policies/            Políticas YAML e exemplos Rego
+examples/            12 demonstrações executáveis
+evals/               23 cenários adversariais usados no CI
+docs/                Documentação técnica e ADRs
+threat-model/        Modelo de ameaça STRIDE e OWASP
+runbooks/            Procedimentos operacionais
+tests/               207 testes unitários
+docker/              Jaeger, Prometheus, Grafana e OPA
 ```
 
-Documentação detalhada: [`docs/00-visao-geral.md`](docs/00-visao-geral.md)
+## Princípios materializados
 
----
+1. Privilégio mínimo por padrão.
+2. Política como código.
+3. Auditoria verificável.
+4. Supervisão humana proporcional ao risco.
+5. Contenção do raio de impacto.
+6. Identidade verificável e delegação explícita.
+7. Ciclo de vida governado.
+8. Neutralidade de provedor e ferramenta de agente.
 
-## Níveis de maturidade implementados
+## Maturidade implementada
 
-### Camada base (L1–L2) — funciona sem infraestrutura
+| Camada | Implementado |
+|--------|--------------|
+| Base | Policy engine, identity, audit log, signing, budget, approval, registry e runtime |
+| Observabilidade | OpenTelemetry, métricas, OPA, Prometheus, Grafana e Jaeger |
+| Produção simulada | PII masking, circuit breaker, dry-run, forensics, vault simulado, tenancy e CLI |
+| Segurança agêntica | Guardrails, tool integrity, MCP allowlist, AI-BOM, memória governada e A2A assinado |
+| Compliance | Mapeamento NIST, ISO 42001, EU AI Act, OWASP LLM, OWASP Agentic e NIST GenAI |
 
-- [x] Motor de política declarativo YAML (default-deny, conditions, ALLOW/DENY/REQUIRE_APPROVAL)
-- [x] Modelo de identidade com escopos explícitos, tokens de curta duração e revogação
-- [x] Cadeia de delegação rastreável — prevenção de escalada de privilégio
-- [x] Audit log append-only JSONL com hash chain SHA-256 e `verify_chain()`
-- [x] **Assinatura criptográfica Ed25519** em cada entrada do audit log
-- [x] Budget guard (custo USD, tokens, nº de chamadas, rate limit por minuto)
-- [x] Approval gate HITL com kill switch global (arquivo em disco)
-- [x] Catálogo de agentes e ferramentas com ciclo de vida (registered → approved → deprecated)
-- [x] GovernedAgentRuntime orquestrando os 8 controles em sequência
-- [x] 12 exemplos executáveis
-- [x] Eval gate com 23 cenários adversariais (exit code ≠ 0 se barreira ceder)
-- [x] CI: lint + testes + eval gate + smoke test dos exemplos
+## Documentação
 
-### Camada observabilidade (L2–L3) — ativa com `make stack`
+Comece por [`docs/00-visao-geral.md`](docs/00-visao-geral.md). Os ADRs ficam em
+[`docs/adr/`](docs/adr/), incluindo a decisão sobre neutralidade de provedor em
+[`ADR-009`](docs/adr/ADR-009-neutralidade-de-provedor-llm.md).
 
-- [x] **OpenTelemetry** — span por ação com atributos de agente/ferramenta/decisão/risco
-- [x] Métricas: latência P95/P99, policy decisions, approvals, budget, kill switch triggers
-- [x] **Anomaly Detector** em tempo real — velocity, deny rate, consecutive denies, off-hours, new tool
-- [x] **OPA client** com fallback automático para YAML (fail-closed sem infraestrutura)
-- [x] Docker Compose: Jaeger, Prometheus, Grafana, OPA
-- [x] Dashboard Grafana pré-configurado (8 painéis de governança)
-- [x] Políticas Rego executáveis no OPA server
+## Próximos passos para produção real
 
-### Camada produção (L3–L4) — sem dependências externas
+| Tema | Recomendação |
+|------|--------------|
+| Identidade | SPIFFE/SVID por workload |
+| Signing | Vault/KMS ou HSM para chaves Ed25519 |
+| Política | OPA Bundle Server com propagação versionada |
+| Auditoria | Kafka para storage durável e consulta analítica |
+| Isolamento | gVisor, Kata ou sandbox equivalente |
+| Rede | mTLS com Istio, Linkerd ou service mesh equivalente |
+| Aprovação | Integração com Slack, PagerDuty ou sistema interno |
+| Anomalia | Baselines estatísticos e modelos especializados |
+| Compliance | Automação de evidências para auditorias externas |
 
-- [x] **PII Masking** — redação automática de e-mail, CPF, JWT, IP, cartão antes de gravar no log
-- [x] **Circuit Breaker** por ferramenta — CLOSED/OPEN/HALF_OPEN com transições auditáveis
-- [x] **GovernanceConfig** — injeção limpa de capacidades opcionais no runtime
-- [x] **N-of-M Approval** — exige M aprovações de um conjunto de N para operações críticas
-- [x] **Policy Dry-run** — compara decisões atual × proposta antes de aplicar mudança
-- [x] **Condições temporais** — políticas que restringem por hora UTC e dia da semana
-- [x] **IncidentReplayer** — reconstrói timeline forense a partir do audit log
-- [x] **ComplianceReporter** — coleta evidências mapeadas a NIST AI RMF / ISO 42001 / EU AI Act
-- [x] **SecretStore simulado** — padrão Vault/KMS com TTL, versões, access policy e rotação
-- [x] **Multi-tenancy** — isolamento completo entre equipes (policy, budget, audit, kill switch)
-- [x] **CLI operacional** — `governance kill-switch`, `audit verify/stats/replay`, `policy eval/dryrun`, `forensics`, `report compliance`, `guardrail scan`, `aibom`
-- [x] 8 exemplos executáveis (01 anti-exemplo → 08 compliance + PII)
-
-### Camada era agêntica (Fase 8) — OWASP Top 10 for Agentic Applications
-
-- [x] **Guardrails de conteúdo** — prompt injection direto/indireto, jailbreak, unicode oculto, DLP de egress e secret leak (entrada e saída), com hook LLM opcional plugável (ASI01/ASI06)
-- [x] **Integridade de ferramentas** — fingerprint + assinatura Ed25519, detecção de tool poisoning e escalada silenciosa de escopo (ASI06)
-- [x] **Allowlist MCP** — só ferramentas de servidores MCP confiáveis (ASI07)
-- [x] **AI-BOM** — inventário verificável de ferramentas/modelos (GPAI/NIST GenAI)
-- [x] **Memória governada** — trust labels por proveniência + quarentena de conteúdo envenenado na recuperação (ASI09)
-- [x] **Comunicação A2A assinada** — mensagens Ed25519 + capability token + nonce anti-replay (ASI04)
-- [x] **OTel GenAI Semantic Conventions** — atributos `gen_ai.*` aditivos nos spans
-- [x] **Model Card** (EU AI Act GPAI Art.53) + mapeamento NIST GenAI Profile (12 categorias)
-- [x] 4 exemplos (09 guardrails → 12 padrões) + 8 cenários adversariais (I–L)
-
-### Compliance e documentação
-
-- [x] Mapeamento: NIST AI RMF, ISO/IEC 42001, EU AI Act + **GPAI**, OWASP LLM Top 10 + **OWASP Top 10 for Agentic Applications**, NIST GenAI Profile
-- [x] Threat model STRIDE + OWASP Top 10 for LLM/Agentic Applications
-- [x] 8 Architecture Decision Records (ADR)
-- [x] Runbooks operacionais (kill switch, incident response, revogação)
-- [x] **Arquitetura de produção L1→L4** com SPIFFE, Kafka, gVisor, Vault/KMS, ML anomaly
-
----
-
-## Próximos passos para L3/L4 (produção real)
-
-| # | O que | Por que | Referência |
-|---|-------|---------|------------|
-| 1 | **SPIFFE/SVID** | Identidade criptográfica por workload sem tokens em memória | [docs/10](docs/10-arquitetura-producao.md) |
-| 2 | **Vault/KMS para signing** | Chave Ed25519 nunca em disco — operações no HSM | [docs/10](docs/10-arquitetura-producao.md) |
-| 3 | **OPA Bundle Server** | Políticas propagam via S3 sem redeploy | [docker/opa](docker/opa/) |
-| 4 | **Kafka → Iceberg** | Audit log replicado, durável e queryável por SQL | [docs/10](docs/10-arquitetura-producao.md) |
-| 5 | **gVisor / Kata** | Agente comprometido não escapa para o host | [docs/10](docs/10-arquitetura-producao.md) |
-| 6 | **Istio/Linkerd (mTLS)** | Zero-trust networking entre serviços | [docs/10](docs/10-arquitetura-producao.md) |
-| 7 | **PagerDuty + Slack bot** | Aprovação humana com SLA e escalação automática | [docs/06](docs/06-supervisao-humana.md) |
-| 8 | **ML anomaly detection** | Baselines comportamentais + desvios estatísticos | [docs/10](docs/10-arquitetura-producao.md) |
-| 9 | **Compliance automation** | Evidências para SOC2/ISO 42001 via Drata/Vanta | [docs/09](docs/09-mapeamento-compliance.md) |
-
----
-
-*Este repositório é um exemplo educacional. O mapeamento de compliance é ilustrativo
-e não constitui aconselhamento jurídico.*
+Este repositório é educacional. O mapeamento de compliance é ilustrativo e não substitui
+avaliação jurídica ou regulatória.

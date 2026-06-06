@@ -1,4 +1,4 @@
-# 13 — Memória Governada e Comunicação A2A
+# 13: Memória Governada e Comunicação A2A
 
 > Defesa contra memory poisoning e comunicação inter-agente insegura.
 > Cobre **OWASP ASI09 (Memory & Context Poisoning)** e **ASI04 (Insecure Inter-Agent
@@ -6,13 +6,13 @@
 
 ---
 
-## Parte A — Memória governada
+## Parte A: Memória governada
 
 ### O problema
 
 Agentes mantêm memória/contexto entre passos. Se conteúdo não confiável (e-mail, página,
 saída de ferramenta) é persistido sem rótulo, ele pode **re-contaminar** o raciocínio em
-recuperações futuras — uma injeção que "dorme" na memória e ataca depois.
+recuperações futuras: uma injeção que "dorme" na memória e ataca depois.
 
 ### A solução
 
@@ -40,7 +40,7 @@ no audit log e **não volta** ao agente. Conteúdo confiável (ou não confiáve
 A verificação centralizada **no ponto de recuperação** garante cobertura independentemente
 de como o conteúdo entrou na memória.
 
-## Parte B — Comunicação A2A assinada
+## Parte B: Comunicação A2A assinada
 
 ### O problema
 
@@ -88,6 +88,6 @@ python -m examples.11_memory_a2a
   (com TTL alinhado à validade do token).
 - O canal cobre integridade/autorização de mensagens, não o transporte (use mTLS na rede).
 
-Relacionado: [11 — Guardrails](11-guardrails-e-conteudo.md),
-[03 — Identidade e acesso](03-identidade-e-acesso.md),
+Relacionado: [11: Guardrails](11-guardrails-e-conteudo.md),
+[03: Identidade e acesso](03-identidade-e-acesso.md),
 [ADR-008](adr/ADR-008-defesas-agenticas.md).

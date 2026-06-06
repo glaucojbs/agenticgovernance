@@ -1,4 +1,4 @@
-# 03 — Identidade e Acesso
+# 03: Identidade e Acesso
 
 ## Modelo de identidade
 
@@ -58,7 +58,7 @@ sequenceDiagram
     IM->>A: novo token
 ```
 
-- Cada token é gerado com `secrets.token_hex(32)` — 256 bits de entropia
+- Cada token é gerado com `secrets.token_hex(32)`: 256 bits de entropia
 - O TTL padrão é 3600 segundos (1 hora); configurável por agente
 - Credenciais podem ser **revogadas manualmente** a qualquer momento
 
@@ -82,10 +82,10 @@ graph TD
 que está tentando delegar. Se não possuir, levanta `PermissionError`:
 
 ```python
-# ✓ Permitido — orchestrator tem read:files
+# ✓ Permitido: orchestrator tem read:files
 chain.add_link(orchestrator, data_fetcher, [AgentScope.READ_FILES])
 
-# ✗ Bloqueado — data_fetcher NÃO tem send:email
+# ✗ Bloqueado: data_fetcher NÃO tem send:email
 chain.add_link(data_fetcher, report_agent, [AgentScope.SEND_EMAIL])
 # → PermissionError: Agente 'DataFetcherAgent' tentou delegar escopos que não possui: send:email
 ```

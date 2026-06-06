@@ -1,4 +1,4 @@
-# ADR-003 — Princípio de Default-Deny
+# ADR-003: Princípio de Default-Deny
 
 **Status:** Aceito  
 **Data:** 2025-06-01  
@@ -29,7 +29,7 @@ Agentes de IA podem ser instruídos (via prompt injection ou comportamento
 emergente) a tentar executar ações não antecipadas pelos desenvolvedores.
 Com default-allow, qualquer nova ferramenta adicionada ao catálogo é
 automaticamente acessível a todos os agentes até que uma regra de negação
-seja criada — **a janela de exposição é o intervalo entre o deploy e a criação
+seja criada: **a janela de exposição é o intervalo entre o deploy e a criação
 da regra**.
 
 ### Falha segura vs. falha aberta
@@ -52,7 +52,7 @@ cada ferramenta que cada agente precisa usar. Este custo é deliberado:
 
 > **Cada política ALLOW é uma decisão documentada, revisada e auditada.**
 
-Não ter a política escrita não significa que a permissão não deveria existir —
+Não ter a política escrita não significa que a permissão não deveria existir :
 significa que ninguém tomou explicitamente a decisão de concedê-la.
 
 ## Consequências
@@ -72,7 +72,7 @@ significa que ninguém tomou explicitamente a decisão de concedê-la.
 ## Implementação
 
 ```python
-# PolicyEngine.evaluate() — trecho relevante
+# PolicyEngine.evaluate(): trecho relevante
 if approval_result:
     return approval_result
 
@@ -87,5 +87,5 @@ return PolicyResult(
 ```
 
 O arquivo `policies/default-deny.yaml` existe como documentação explícita deste
-princípio — ele não contém regras, mas sua presença sinaliza que a ausência de
+princípio: ele não contém regras, mas sua presença sinaliza que a ausência de
 regras é intencional.

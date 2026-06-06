@@ -1,4 +1,4 @@
-# ADR-006 — Circuit Breaker por Ferramenta
+# ADR-006: Circuit Breaker por Ferramenta
 
 **Status:** Aceito  
 **Data:** 2026-06-04  
@@ -51,7 +51,7 @@ O padrão circuit breaker é preferível a timeouts simples porque:
 
 **Negativas / Limitações:**
 - Falhas causadas por problemas nos parâmetros (não na ferramenta) também contam
-- Estado em memória — reiniciar o processo reseta todos os breakers
+- Estado em memória: reiniciar o processo reseta todos os breakers
 - Em produção: persistir estado em Redis para durabilidade entre deploys
 
 ## Integração com GovernanceConfig

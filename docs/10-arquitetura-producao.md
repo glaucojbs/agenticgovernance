@@ -1,4 +1,4 @@
-# 10 — Arquitetura de Produção (Big Tech Reference)
+# 10: Arquitetura de Produção (Big Tech Reference)
 
 > Este documento descreve o que uma organização de grande porte precisa montar
 > **além do código deste repositório** para governança agêntica de nível produção.
@@ -6,7 +6,7 @@
 
 ---
 
-## Diagrama completo — Big Tech Stack
+## Diagrama completo: Big Tech Stack
 
 ```mermaid
 graph TD
@@ -19,7 +19,7 @@ graph TD
     subgraph "Policy Plane"
         OPA["OPA Server\n(Rego policies)"]
         GIT["Git (Policy Repo)\nPR review + CI"]
-        BUNDLE["OPA Bundle\n(S3/GCS — políticas versionadas)"]
+        BUNDLE["OPA Bundle\n(S3/GCS: políticas versionadas)"]
         GIT --> BUNDLE --> OPA
     end
 
@@ -80,7 +80,7 @@ graph TD
 
 ## O que cada camada resolve
 
-### 1. Identidade — SPIFFE/SPIRE
+### 1. Identidade: SPIFFE/SPIRE
 
 **Problema**: tokens em memória podem ser roubados; chaves em variáveis de ambiente vão parar em logs.
 
@@ -97,7 +97,7 @@ o `IdentityManager` consulta o SPIRE Workload API em vez de emitir tokens própr
 
 ---
 
-### 2. Segredos — HashiCorp Vault / KMS
+### 2. Segredos: HashiCorp Vault / KMS
 
 **Problema**: chave Ed25519 de assinatura não pode ficar em disco em produção.
 
@@ -105,7 +105,7 @@ o `IdentityManager` consulta o SPIRE Workload API em vez de emitir tokens própr
 a aplicação passa os dados a serem assinados para o serviço.
 
 ```python
-# Em produção — substituir AuditSigner.generate() por:
+# Em produção: substituir AuditSigner.generate() por:
 import boto3
 kms = boto3.client("kms")
 response = kms.sign(KeyId="arn:aws:kms:...", Message=payload, SigningAlgorithm="ECDSA_SHA_256")
@@ -113,7 +113,7 @@ response = kms.sign(KeyId="arn:aws:kms:...", Message=payload, SigningAlgorithm="
 
 ---
 
-### 3. Policy Engine — OPA + Bundle Server
+### 3. Policy Engine: OPA + Bundle Server
 
 **Problema**: políticas YAML versionadas localmente não escalam para múltiplas instâncias.
 
@@ -131,7 +131,7 @@ basta mudar o `docker/opa/policies/` para apontar para o bundle remoto.
 
 ---
 
-### 4. Audit Stream — Kafka → Iceberg
+### 4. Audit Stream: Kafka → Iceberg
 
 **Problema**: JSONL local não é replicado, não escala, e não é queryável em SQL.
 
@@ -149,7 +149,7 @@ Agent Action → GovernedRuntime → SignedAuditLogger → Kafka Topic → Flink
 
 ---
 
-### 5. Observabilidade — OpenTelemetry → Jaeger + Grafana
+### 5. Observabilidade: OpenTelemetry → Jaeger + Grafana
 
 **O que já está implementado** (este repo):
 - `GovernanceTelemetry` emite spans e métricas via OTEL SDK
@@ -187,7 +187,7 @@ service:
 
 ---
 
-### 6. Aprovação Humana — PagerDuty + Slack Bot
+### 6. Aprovação Humana: PagerDuty + Slack Bot
 
 **O que já está implementado**: `ApprovalGate` com callback configurável.
 
@@ -214,7 +214,7 @@ def pagerduty_slack_approver(req: ApprovalRequest) -> tuple[bool, str]:
 
 ---
 
-### 7. Isolamento — Kubernetes + gVisor
+### 7. Isolamento: Kubernetes + gVisor
 
 **Problema**: um agente comprometido pode escapar do processo Python e acessar o host.
 
@@ -243,7 +243,7 @@ spec:
 
 ---
 
-### 8. Anomaly Detection — ML em Produção
+### 8. Anomaly Detection: ML em Produção
 
 O `AnomalyDetector` deste repo é rule-based. Em produção de grande escala:
 

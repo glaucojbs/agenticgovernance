@@ -3,7 +3,7 @@
 Este diretório contém as mesmas regras do arquivo `example-readonly-agent.yaml`
 reimplementadas em **Rego**, a linguagem do [Open Policy Agent (OPA)](https://www.openpolicyagent.org/).
 
-Os arquivos Rego aqui são **ilustrativos** — não são executados pelo runtime
+Os arquivos Rego aqui são **ilustrativos**: não são executados pelo runtime
 deste repositório, que usa o motor YAML nativo por simplicidade.
 
 ## Quando vale a pena adotar OPA ou Cedar em produção?

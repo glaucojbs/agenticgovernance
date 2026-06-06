@@ -1,10 +1,10 @@
-# 05 — Observabilidade e Auditoria
+# 05: Observabilidade e Auditoria
 
 ## O problema com logs convencionais
 
 Logs convencionais (ex.: syslog, CloudWatch) são mutáveis: um atacante com acesso
 ao sistema de logging pode apagar ou modificar registros sem deixar rastro.
-Em contextos de IA agêntica — onde um agente comprometido pode ter acesso amplo —
+Em contextos de IA agêntica: onde um agente comprometido pode ter acesso amplo :
 isso é inaceitável. Além disso, dados pessoais gravados em texto claro em logs
 violam LGPD/GDPR.
 
@@ -66,7 +66,7 @@ print(f"Assinaturas válidas: {result['valid']} ({result['total']} entradas)")
 
 ## PII Masking: proteção antes do log
 
-O `PIIMasker` é aplicado pelo runtime **antes** de gravar qualquer entrada —
+O `PIIMasker` é aplicado pelo runtime **antes** de gravar qualquer entrada :
 dados pessoais nunca chegam ao log em texto claro:
 
 ```python
@@ -222,10 +222,10 @@ governance forensics audit_logs/prod/audit.jsonl --agents agent-suspeito
 
 ## OTel GenAI Semantic Conventions (`gen_ai.*`)
 
-A partir da Fase 8, cada span de execução carrega — de forma **aditiva**, sem remover os
-atributos `governance.*` — os atributos padronizados pela
+Cada span de execução carrega os atributos padronizados pela
 [OTel GenAI SIG](https://opentelemetry.io/docs/specs/semconv/gen-ai/). Isso torna os traces
 interoperáveis com Datadog, Honeycomb, Grafana e com frameworks como LangChain, CrewAI e AutoGen.
+Esses atributos são aditivos e não substituem os atributos `governance.*`.
 
 | Atributo `gen_ai.*` | Conteúdo |
 |---------------------|----------|
@@ -238,10 +238,10 @@ interoperáveis com Datadog, Honeycomb, Grafana e com frameworks como LangChain,
 
 A aplicação fica em `src/governance/telemetry/semconv.py` (`set_tool_span_attributes`),
 chamada pelo `GovernedAgentRuntime` em cada `execute()`. Veja
-[`examples/12_standards_report`](../examples/12_standards_report/__main__.py) — com
+[`examples/12_standards_report`](../examples/12_standards_report/__main__.py): com
 `OTEL_EXPORTER=otlp` os spans são exportados para o Jaeger local.
 
-### Métricas adicionais (Fase 8)
+### Métricas de segurança agêntica
 
 `governance.guardrail.blocks.total`, `governance.tool_integrity.violations.total`,
 `governance.memory.quarantines.total`, `governance.a2a.rejections.total`.

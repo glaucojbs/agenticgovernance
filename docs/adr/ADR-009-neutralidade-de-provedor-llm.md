@@ -1,4 +1,4 @@
-# ADR-009 — Neutralidade de Provedor e Ferramenta de Agente
+# ADR-009: Neutralidade de Provedor e Ferramenta de Agente
 
 ## Status
 

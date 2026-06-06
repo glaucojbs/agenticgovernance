@@ -1,4 +1,4 @@
-# 07 — Classificação de Risco
+# 07: Classificação de Risco
 
 ## Níveis de risco
 
@@ -36,17 +36,17 @@ Para classificar uma ferramenta, responda:
 
 | Ferramenta | Risco | Destrutiva | Reversível | Escopo |
 |-----------|-------|------------|------------|--------|
-| `read_files` | LOW | Não | — | `read:files` |
-| `list_files` | LOW | Não | — | `read:files` |
-| `query_database` | LOW | Não | — | `read:database` |
-| `call_internal_api` (GET) | LOW | Não | — | `call:internal_api` |
+| `read_files` | LOW | Não | N/A | `read:files` |
+| `list_files` | LOW | Não | N/A | `read:files` |
+| `query_database` | LOW | Não | N/A | `read:database` |
+| `call_internal_api` (GET) | LOW | Não | N/A | `call:internal_api` |
 | `write_files` | MEDIUM | Não | Sim | `write:files` |
 | `send_notification` | MEDIUM | Não | Não | `send:notification` |
 | `update_database` | MEDIUM | Não | Sim | `write:database` |
 | `call_external_api` | MEDIUM | Não | Não | `call:external_api` |
 | `send_email` | HIGH | Não | Não | `send:email` |
 | `execute_code` | HIGH | Depende | Depende | `execute:code` |
-| `read_secrets` | HIGH | Não | — | `read:secrets` |
+| `read_secrets` | HIGH | Não | N/A | `read:secrets` |
 | `delete_files` | CRITICAL | **Sim** | Não | `delete:files` |
 | `wipe_database` | CRITICAL | **Sim** | Não | `delete:files` |
 | `drop_table` | CRITICAL | **Sim** | Não | `write:database` |

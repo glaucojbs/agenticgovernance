@@ -1,4 +1,4 @@
-# 01 — Arquitetura
+# 01: Arquitetura
 
 ## Control Plane vs. Data Plane
 
@@ -6,14 +6,14 @@ A governança é dividida em duas camadas com responsabilidades distintas:
 
 ```mermaid
 graph LR
-    subgraph "Control Plane — define O QUE PODE acontecer"
+    subgraph "Control Plane: define O QUE PODE acontecer"
         P["📋 Policy Engine\nYAML + OPA client + dry-run\ncondições temporais"]
         ID["🪪 Identity Manager\nAgentIdentity + DelegationChain"]
         REG["📦 Registry\nToolRegistry + AgentRegistry"]
         SEC["🔑 Vault / SecretStore\nTTL + versões + rotação"]
     end
 
-    subgraph "Data Plane — controla O QUE ACONTECE em runtime"
+    subgraph "Data Plane: controla O QUE ACONTECE em runtime"
         RT["⚙️ GovernedAgentRuntime\n+ GovernanceConfig"]
         AU["🔍 Audit Logger\nJSONL + hash chain + Ed25519"]
         BU["💰 Budget Guard\ncusto / tokens / calls / rate"]

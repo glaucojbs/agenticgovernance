@@ -16,12 +16,12 @@ Obrigado por contribuir com este repositório de referência!
 
 - Python 3.11+, type hints em todo o `src/`.
 - Use `pydantic` para modelos de dados.
-- Sem frameworks pesados de agente — o objetivo é manter o código legível e didático.
+- Sem frameworks pesados de agente: o objetivo é manter o código legível e didático.
 - Comentários apenas quando a intenção de governança não for óbvia pelo código.
 
 ## O que NÃO commitar
 
-- Segredos, chaves de API, tokens — use `.env.example` com placeholders.
+- Segredos, chaves de API, tokens: use `.env.example` com placeholders.
 - Arquivos `.env` reais.
 - Logs de auditoria gerados em `audit_logs/`.
 - O arquivo `.kill_switch`.

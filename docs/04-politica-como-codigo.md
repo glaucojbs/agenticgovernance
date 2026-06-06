@@ -1,4 +1,4 @@
-# 04 — Política como Código
+# 04: Política como Código
 
 ## Por que política como código?
 
@@ -34,20 +34,20 @@ rules:
 
 | Campo | Tipo | Padrão | Descrição |
 |-------|------|--------|-----------|
-| `name` | string | — | Identificador único da regra |
-| `decision` | enum | — | `ALLOW`, `DENY` ou `REQUIRE_APPROVAL` |
+| `name` | string | N/A | Identificador único da regra |
+| `decision` | enum | N/A | `ALLOW`, `DENY` ou `REQUIRE_APPROVAL` |
 | `tools` | list | `["*"]` | Ferramentas que ativam a regra |
 | `environments` | list | `["*"]` | Ambientes que ativam a regra |
 | `risk_levels` | list | `["*"]` | Níveis de risco que ativam a regra |
 | `scopes_required` | list | `[]` | Escopos que o agente deve possuir |
 | `conditions` | dict | `{}` | Condições nos parâmetros da ação |
-| `allowed_utc_hours` | list[int] | `[]` | Horas UTC em que a regra se aplica (0–23). Lista vazia = sem restrição. |
+| `allowed_utc_hours` | list[int] | `[]` | Horas UTC em que a regra se aplica (0-23). Lista vazia = sem restrição. |
 | `allowed_weekdays` | list[int] | `[]` | Dias da semana (0=seg…6=dom). Lista vazia = sem restrição. |
-| `reason` | string | — | Mensagem exibida quando a regra bate |
+| `reason` | string | N/A | Mensagem exibida quando a regra bate |
 
 ## Condições temporais
 
-Úteis para restringir ações a janelas de tempo — ex.: operações de manutenção
+Úteis para restringir ações a janelas de tempo: ex.: operações de manutenção
 só durante o horário comercial, ou bloquear deploys em fins de semana:
 
 ```yaml
@@ -95,7 +95,7 @@ DENY → REQUIRE_APPROVAL → ALLOW → default-deny
 O motor itera as regras em ordem de arquivo (alfabético) e dentro de cada arquivo
 na ordem declarada. A **primeira regra DENY que bate** encerra a avaliação imediatamente.
 
-## Policy Dry-run — testar mudanças antes de aplicar
+## Policy Dry-run: testar mudanças antes de aplicar
 
 Antes de fazer merge de uma PR que altera políticas, compare as decisões atual × proposta:
 

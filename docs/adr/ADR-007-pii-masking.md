@@ -1,4 +1,4 @@
-# ADR-007 — PII Masking no Audit Log
+# ADR-007: PII Masking no Audit Log
 
 **Status:** Aceito  
 **Data:** 2026-06-04  
@@ -8,7 +8,7 @@
 
 ## Contexto
 
-Agentes frequentemente recebem parâmetros que contêm dados pessoais —
+Agentes frequentemente recebem parâmetros que contêm dados pessoais :
 e-mails de destinatários, CPFs em queries de banco, tokens de autenticação.
 Gravar esses dados em texto claro no audit log viola LGPD/GDPR e cria
 um vetor de exposição desnecessário.

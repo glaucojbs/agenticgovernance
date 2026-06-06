@@ -1,4 +1,4 @@
-# Runbook — Revogação de Credenciais de Agente
+# Runbook: Revogação de Credenciais de Agente
 
 **Versão:** 1.1  
 **Audiência:** Time de operações, time de segurança
@@ -25,7 +25,7 @@ será bloqueada com "Credencial inválida ou expirada".
 from governance.identity.manager import IdentityManager
 
 manager = IdentityManager()  # use a instância da aplicação
-manager.revoke("agent-id", reason="credencial comprometida — token vazado em PR #123")
+manager.revoke("agent-id", reason="credencial comprometida: token vazado em PR #123")
 ```
 
 ### 2. Revogação de escopo específico
@@ -96,7 +96,7 @@ registry.deprecate("agent-id-comprometido")
 Após a revogação, verifique o audit log para confirmar:
 
 ```bash
-# Via CLI — replay filtrado pelo agente comprometido
+# Via CLI: replay filtrado pelo agente comprometido
 governance audit replay audit_logs/producao/audit.jsonl \
   --agent agent-id-comprometido
 

@@ -1,4 +1,4 @@
-# ADR-005 — Arquitetura Multi-Tenant
+# ADR-005: Arquitetura Multi-Tenant
 
 **Status:** Aceito  
 **Data:** 2026-06-04  
@@ -22,15 +22,15 @@ como facade de roteamento, implementado em `src/governance/tenancy/`.
 
 ```
 TenantRegistry
-  ├── Tenant(team-alpha)
-  │     ├── PolicyEngine(policies/alpha/)    ← políticas próprias
-  │     ├── BudgetGuard(config=alpha_budget) ← limites próprios
-  │     ├── AgentRegistry()                  ← agentes próprios
-  │     ├── AuditLogger(audit/alpha.jsonl)   ← log separado
-  │     └── ApprovalGate(.kill_switch_alpha) ← kill switch local
-  └── Tenant(team-beta)
-        ├── PolicyEngine(policies/beta/)
-        └── ...
+  ├-- Tenant(team-alpha)
+  │     ├-- PolicyEngine(policies/alpha/)    ← políticas próprias
+  │     ├-- BudgetGuard(config=alpha_budget) ← limites próprios
+  │     ├-- AgentRegistry()                  ← agentes próprios
+  │     ├-- AuditLogger(audit/alpha.jsonl)   ← log separado
+  │     └-- ApprovalGate(.kill_switch_alpha) ← kill switch local
+  └-- Tenant(team-beta)
+        ├-- PolicyEngine(policies/beta/)
+        └-- ...
 ```
 
 **Garantia de isolamento:** `Tenant.execute()` verifica que o `agent_id` está
@@ -48,7 +48,7 @@ bloqueados com erro explícito.
 ## Consequências
 
 **Positivas:**
-- Cada tenant é completamente independente — falha de um não afeta outro
+- Cada tenant é completamente independente: falha de um não afeta outro
 - Kill switch local: equipe A pode parar seus agentes sem afetar equipe B
 - Kill switch global: operador da plataforma para todos simultaneamente
 - Audit logs por tenant facilitam compliance e rastreabilidade

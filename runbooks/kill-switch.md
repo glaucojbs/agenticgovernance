@@ -1,4 +1,4 @@
-# Runbook — Kill Switch Global
+# Runbook: Kill Switch Global
 
 **Versão:** 1.1  
 **Audiência:** Time de operações, SREs
@@ -31,28 +31,28 @@ O custo de uma parada falsa é muito menor que o custo de uma ação destrutiva 
 
 ## Ativação
 
-### Método 1 — CLI (método preferido)
+### Método 1: CLI (método preferido)
 
 ```bash
 # Ativa com motivo registrado
-governance kill-switch enable "P0: incidente de segurança — [descrever]"
+governance kill-switch enable "P0: incidente de segurança: [descrever]"
 
 # Verifica status
 governance kill-switch status
 ```
 
-### Método 2 — Linha de comando direta (mais rápido, sem CLI)
+### Método 2: Linha de comando direta (mais rápido, sem CLI)
 
 ```bash
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | [motivo do incidente]" > .kill_switch
 ```
 
-### Método 3 — Python
+### Método 3: Python
 
 ```python
 from governance.approval.gate import ApprovalGate
 gate = ApprovalGate()  # use o caminho configurado da sua instalação
-gate.activate_kill_switch("P0: incidente de segurança — [descrever]")
+gate.activate_kill_switch("P0: incidente de segurança: [descrever]")
 ```
 
 ### Verificação
@@ -73,7 +73,7 @@ Após a ativação, toda tentativa de execução de ferramenta por qualquer agen
 resulta em:
 
 ```
-GovernanceError: Kill switch ativo — todas as ações bloqueadas.
+GovernanceError: Kill switch ativo: todas as ações bloqueadas.
 Motivo: 2025-06-01T10:30:00Z | P0: incidente de segurança
 ```
 
@@ -89,19 +89,19 @@ O evento é registrado na trilha de auditoria como `kill_switch_triggered`.
 3. A política foi atualizada para prevenir recorrência
 4. Um humano responsável autorizou a retomada
 
-### Método 1 — CLI
+### Método 1: CLI
 
 ```bash
 governance kill-switch disable
 ```
 
-### Método 2 — Linha de comando direta
+### Método 2: Linha de comando direta
 
 ```bash
 rm .kill_switch
 ```
 
-### Método 3 — Python
+### Método 3: Python
 
 ```python
 gate.deactivate_kill_switch()
@@ -112,10 +112,10 @@ gate.deactivate_kill_switch()
 ## Diagnóstico pós-ativação
 
 ```bash
-# Via CLI — replay filtrado por tipo de evento
+# Via CLI: replay filtrado por tipo de evento
 governance audit replay audit_logs/producao/audit.jsonl | grep kill_switch
 
-# Via CLI — estatísticas do log
+# Via CLI: estatísticas do log
 governance audit stats audit_logs/producao/audit.jsonl
 
 # Reconstituição forense completa

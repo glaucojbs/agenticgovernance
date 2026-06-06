@@ -1,4 +1,4 @@
-# ADR-004 — Assinatura Ed25519 no Audit Log
+# ADR-004: Assinatura Ed25519 no Audit Log
 
 **Status:** Aceito  
 **Data:** 2026-06-04  

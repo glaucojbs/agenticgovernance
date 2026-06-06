@@ -1,4 +1,4 @@
-# Runbook — Resposta a Incidentes com Agentes de IA
+# Runbook: Resposta a Incidentes com Agentes de IA
 
 **Versão:** 1.1  
 **Audiência:** Time de operações, SREs, time de segurança
@@ -16,12 +16,12 @@
 
 ---
 
-## Procedimento P0 — Contenção imediata
+## Procedimento P0: Contenção imediata
 
 ### Passo 1: Ativar o kill switch
 
 ```bash
-# Via CLI (método preferido — não requer Python)
+# Via CLI (método preferido: não requer Python)
 governance kill-switch enable "P0: [descrever o incidente]"
 
 # Acesso direto ao servidor (mais rápido ainda, sem CLI)
