@@ -12,6 +12,34 @@ Obrigado por contribuir com este repositório de referência!
    - `make eval` deve passar (barreiras de governança não podem regredir).
 4. Inclua um ADR em `docs/adr/` se sua mudança introduz uma decisão arquitetural relevante.
 
+## Fluxo de Melhoria Diária
+
+A evolução deste repositório acontece em **incrementos pequenos e diários** (um PR por dia),
+guiados pelo [`ROADMAP.md`](ROADMAP.md). O modo é **híbrido**: um agente propõe, um humano
+aprova.
+
+1. **Selecionar** — ler o `ROADMAP.md` e pegar o próximo item desbloqueado de maior
+   prioridade.
+2. **Propor** — apresentar um resumo curto: qual item, abordagem, arquivos afetados e se há
+   decisão arquitetural (ADR). **Parar e aguardar aprovação humana.**
+3. **Aprovar** — o humano confirma, ajusta o escopo ou troca de item.
+4. **Implementar** — uma slice pequena; rodar os gates (`make lint` / `make test` /
+   `make eval`).
+5. **Registrar** — marcar o item no `ROADMAP.md` (`- [ ]` → `- [x]`), adicionar uma linha ao
+   `CHANGELOG.md` e incluir o ADR se aplicável.
+6. **PR** — abrir um PR `feat/...` ou `fix/...` para revisão e merge.
+
+### Definição de Pronto de um incremento diário
+
+- `make lint` passa sem erros.
+- `make test` passa com cobertura para o código novo.
+- `make eval` passa (sem regressão de governança).
+- ADR adicionado em `docs/adr/` se houve decisão arquitetural.
+- `CHANGELOG.md` atualizado e item marcado no `ROADMAP.md`.
+- Branch `feat/...` ou `fix/...` e PR aberto.
+- **Neutralidade preservada**: integrações reais entram por adapter com lazy-import, nunca
+  como import direto no domínio (ver [`AGENTS.md`](AGENTS.md)).
+
 ## Convenções de código
 
 - Python 3.11+, type hints em todo o `src/`.
