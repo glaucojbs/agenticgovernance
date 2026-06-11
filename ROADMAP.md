@@ -78,5 +78,7 @@ Atualizar `docs/` conforme as outras trilhas avançam.
 
 ## Concluídos
 
+- [x] `C0` `fix(lint)`: lint determinístico — pin `ruff==0.15.15` e `ruff format`
+  reproduzível entre local e CI. (PR #2)
 - [x] `D0` Instalar o sistema de melhoria incremental: `ROADMAP.md`, `CHANGELOG.md` e o
   Fluxo de Melhoria Diária em `CONTRIBUTING.md`.

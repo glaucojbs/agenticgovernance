@@ -18,4 +18,8 @@ adiciona uma linha referenciando o item correspondente do [`ROADMAP.md`](ROADMAP
 
 ### Fixed
 
+- Lint determinístico: `ruff` fixado em `==0.15.15` no extra `[dev]` e formatação
+  reaplicada em `src/`, `tests/`, `examples/` e `evals/`. Antes, o range `ruff>=0.4`
+  tornava `ruff format --check` não-reprodutível entre local e CI. (ROADMAP `C0`, PR #2)
+
 ### Security
