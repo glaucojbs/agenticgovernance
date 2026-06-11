@@ -48,9 +48,7 @@ class TestDefaultDeny:
 
 class TestDestructiveDeny:
     @pytest.mark.parametrize("tool", ["delete_files", "drop_table", "wipe_database"])
-    def test_destructive_tools_always_denied(
-        self, engine: PolicyEngine, tool: str
-    ) -> None:
+    def test_destructive_tools_always_denied(self, engine: PolicyEngine, tool: str) -> None:
         req = make_request(
             tool_name=tool,
             scopes=list(AgentScope),

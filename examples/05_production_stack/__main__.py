@@ -75,12 +75,11 @@ def run() -> None:
             alerts_capturados.append(alert)
             icon = {"info": "ℹ️ ", "warning": "⚠️ ", "critical": "🚨"}[alert.severity]
             print(
-                f"  {icon} [{alert.severity.upper()}] {alert.rule_name}\n"
-                f"     {alert.description}"
+                f"  {icon} [{alert.severity.upper()}] {alert.rule_name}\n     {alert.description}"
             )
 
         detector = AnomalyDetector(
-            max_calls_per_minute=5.0,     # baixo para demonstrar o alerta
+            max_calls_per_minute=5.0,  # baixo para demonstrar o alerta
             max_deny_rate=0.4,
             max_consecutive_denies=3,
             alert_handlers=[alert_capture],
@@ -111,18 +110,22 @@ def run() -> None:
 
         tools = ToolRegistry()
         _tool_defs = [
-            ("read_files",     RiskLevel.LOW,    AgentScope.READ_FILES),
-            ("delete_files",   RiskLevel.HIGH,   AgentScope.DELETE_FILES),
-            ("query_database", RiskLevel.LOW,    AgentScope.READ_DATABASE),
-            ("send_email",     RiskLevel.MEDIUM, AgentScope.SEND_EMAIL),
+            ("read_files", RiskLevel.LOW, AgentScope.READ_FILES),
+            ("delete_files", RiskLevel.HIGH, AgentScope.DELETE_FILES),
+            ("query_database", RiskLevel.LOW, AgentScope.READ_DATABASE),
+            ("send_email", RiskLevel.MEDIUM, AgentScope.SEND_EMAIL),
         ]
         for _name, _risk, _scope in _tool_defs:
+
             def _make_impl(n: str):
                 return lambda **kw: f"[SIMULADO] {n} executado"
+
             tools.register(
                 ToolDefinition(
-                    name=_name, description=_name,
-                    risk_level=_risk, required_scope=_scope,
+                    name=_name,
+                    description=_name,
+                    risk_level=_risk,
+                    required_scope=_scope,
                 ),
                 implementation=_make_impl(_name),
             )
@@ -177,8 +180,10 @@ def run() -> None:
         if sig_result["valid"]:
             print(f"  ✓ Todas as {sig_result['total']} assinaturas são válidas")
         else:
-            print(f"  ✗ {len(sig_result['invalid_entries'])} entradas com assinatura inválida: "
-                  f"{sig_result['invalid_entries']}")
+            print(
+                f"  ✗ {len(sig_result['invalid_entries'])} entradas com assinatura inválida: "
+                f"{sig_result['invalid_entries']}"
+            )
 
         if chain_result.valid:
             print(f"  ✓ Hash chain VÁLIDA ({chain_result.total_entries} entradas)")

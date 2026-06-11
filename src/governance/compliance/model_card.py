@@ -109,7 +109,12 @@ def generate_model_card(
             "kill switch + aprovação humana",
         ],
         risk_categories_addressed=risk_categories_addressed
-        or ["Information Integrity", "Data Privacy", "Information Security", "Human-AI Configuration"],
+        or [
+            "Information Integrity",
+            "Data Privacy",
+            "Information Security",
+            "Human-AI Configuration",
+        ],
         limitations=limitations
         or [
             "guardrails determinísticos: classificador LLM é opcional e plugável",

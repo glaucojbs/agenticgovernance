@@ -99,8 +99,8 @@ class NApprovalGate:
         available_approvers: list[str] | None = None,
         timeout_seconds: float = 300.0,
         approver_callbacks: list[NApproverCallback] | None = None,
-        auto_approve_count: int = 0,   # para testes
-        auto_deny_count: int = 0,      # para testes
+        auto_approve_count: int = 0,  # para testes
+        auto_deny_count: int = 0,  # para testes
     ) -> None:
         self._required = required_approvals
         self._approvers = available_approvers or [
@@ -136,20 +136,24 @@ class NApprovalGate:
 
         # Coleta votos automáticos (para testes/exemplos)
         for i in range(self._auto_approve):
-            req.votes.append(ApproverVote(
-                approver_id=f"auto-approver-{i+1}",
-                approver_name=f"Auto Approver {i+1}",
-                decision=VoteDecision.APPROVE,
-                notes="auto-approved (test mode)",
-            ))
+            req.votes.append(
+                ApproverVote(
+                    approver_id=f"auto-approver-{i + 1}",
+                    approver_name=f"Auto Approver {i + 1}",
+                    decision=VoteDecision.APPROVE,
+                    notes="auto-approved (test mode)",
+                )
+            )
 
         for i in range(self._auto_deny):
-            req.votes.append(ApproverVote(
-                approver_id=f"auto-denier-{i+1}",
-                approver_name=f"Auto Denier {i+1}",
-                decision=VoteDecision.DENY,
-                notes="auto-denied (test mode)",
-            ))
+            req.votes.append(
+                ApproverVote(
+                    approver_id=f"auto-denier-{i + 1}",
+                    approver_name=f"Auto Denier {i + 1}",
+                    decision=VoteDecision.DENY,
+                    notes="auto-denied (test mode)",
+                )
+            )
 
         # Chama callbacks de aprovadores reais
         for callback in self._callbacks:

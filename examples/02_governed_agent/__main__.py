@@ -34,9 +34,7 @@ def run() -> None:
 """)
 
     # ── Monta o runtime governado ────────────────────────────────────────────
-    runtime, audit, approval, tools, agents = build_runtime(
-        audit_subdir="02_governed_agent"
-    )
+    runtime, audit, approval, tools, agents = build_runtime(audit_subdir="02_governed_agent")
 
     # ── Identidade do agente ─────────────────────────────────────────────────
     agent = make_identity(
@@ -60,9 +58,7 @@ def run() -> None:
 
     # ── Ação 2: Query no banco — deve PERMITIR ───────────────────────────────
     print_header("AÇÃO 2 — Query no banco de dados (escopo correto)")
-    result = runtime.execute(
-        agent, "query_database", {"query": "SELECT COUNT(*) FROM vendas"}
-    )
+    result = runtime.execute(agent, "query_database", {"query": "SELECT COUNT(*) FROM vendas"})
     print_result("query_database → SELECT COUNT(*) FROM vendas", result)
 
     # ── Ação 3: Deletar arquivos — deve NEGAR (política explícita) ───────────

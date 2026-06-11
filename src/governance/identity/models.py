@@ -97,9 +97,7 @@ class AgentIdentity(BaseModel):
 
     def issue_credential(self, ttl_seconds: int = 3600) -> AgentCredential:
         """Emite um novo token de curta duração para este agente."""
-        cred = AgentCredential(
-            expires_at=datetime.now(UTC) + timedelta(seconds=ttl_seconds)
-        )
+        cred = AgentCredential(expires_at=datetime.now(UTC) + timedelta(seconds=ttl_seconds))
         self.credential = cred
         return cred
 

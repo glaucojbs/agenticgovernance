@@ -23,6 +23,7 @@ from governance.policy.engine import ActionRequest, PolicyDecision, PolicyEngine
 @dataclass
 class DryRunComparison:
     """Resultado da comparação de uma única ActionRequest."""
+
     request: ActionRequest
     current: PolicyResult
     proposed: PolicyResult
@@ -58,6 +59,7 @@ class DryRunComparison:
 @dataclass
 class DryRunReport:
     """Relatório completo de um dry-run de política."""
+
     total: int = 0
     changed: list[DryRunComparison] = field(default_factory=list)
     unchanged: list[DryRunComparison] = field(default_factory=list)

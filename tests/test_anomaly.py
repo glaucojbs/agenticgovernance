@@ -1,7 +1,5 @@
 """Testes para o detector de anomalias."""
 
-
-
 from governance.anomaly.detector import AlertSeverity, AnomalyDetector
 from governance.runtime.governed import ExecutionResult
 
@@ -11,8 +9,10 @@ def _ok(tool: str = "read_files", agent: str = "a1") -> tuple[str, str, Executio
 
 
 def _denied(tool: str = "delete_files", agent: str = "a1") -> tuple[str, str, ExecutionResult]:
-    return agent, tool, ExecutionResult(
-        success=False, tool_name=tool, agent_id=agent, error="denied"
+    return (
+        agent,
+        tool,
+        ExecutionResult(success=False, tool_name=tool, agent_id=agent, error="denied"),
     )
 
 

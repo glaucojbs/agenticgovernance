@@ -24,10 +24,10 @@ from governance.tenancy.tenant import Tenant, TenantConfig, TenantRegistry, Tena
 def make_tool_registry() -> ToolRegistry:
     tools = ToolRegistry()
     for name, risk, scope in [
-        ("read_files",     RiskLevel.LOW,    AgentScope.READ_FILES),
-        ("delete_files",   RiskLevel.HIGH,   AgentScope.DELETE_FILES),
-        ("query_database", RiskLevel.LOW,    AgentScope.READ_DATABASE),
-        ("send_email",     RiskLevel.MEDIUM, AgentScope.SEND_EMAIL),
+        ("read_files", RiskLevel.LOW, AgentScope.READ_FILES),
+        ("delete_files", RiskLevel.HIGH, AgentScope.DELETE_FILES),
+        ("query_database", RiskLevel.LOW, AgentScope.READ_DATABASE),
+        ("send_email", RiskLevel.MEDIUM, AgentScope.SEND_EMAIL),
     ]:
         tools.register(
             ToolDefinition(name=name, description=name, risk_level=risk, required_scope=scope),
@@ -53,8 +53,8 @@ def run() -> None:
 
         for tenant_id, owner in [
             ("team-alpha", "alice@empresa.com"),
-            ("team-beta",  "bob@empresa.com"),
-            ("security",   "sec@empresa.com"),
+            ("team-beta", "bob@empresa.com"),
+            ("security", "sec@empresa.com"),
         ]:
             cfg = TenantConfig(
                 tenant_id=tenant_id,
@@ -76,13 +76,17 @@ def run() -> None:
         beta_tenant = tenant_registry.get("team-beta")
 
         alpha_agent = AgentIdentity(
-            id="alpha-analyst", name="AlphaAnalyst",
-            owner="alice@empresa.com", environment=AgentEnvironment.DEV,
+            id="alpha-analyst",
+            name="AlphaAnalyst",
+            owner="alice@empresa.com",
+            environment=AgentEnvironment.DEV,
             scopes=[AgentScope.READ_FILES, AgentScope.READ_DATABASE],
         )
         beta_agent = AgentIdentity(
-            id="beta-analyst", name="BetaAnalyst",
-            owner="bob@empresa.com", environment=AgentEnvironment.DEV,
+            id="beta-analyst",
+            name="BetaAnalyst",
+            owner="bob@empresa.com",
+            environment=AgentEnvironment.DEV,
             scopes=[AgentScope.READ_FILES],
         )
 
@@ -117,7 +121,9 @@ def run() -> None:
         print(f"  alpha → read_files     : {'✓ OK' if r.success else '✗ BLOQUEADO (kill switch)'}")
 
         r = beta_tenant.execute(beta_agent, "read_files")
-        print(f"  beta  → read_files     : {'✓ OK (não afetado)' if r.success else '✗ ' + r.error[:40]}")
+        print(
+            f"  beta  → read_files     : {'✓ OK (não afetado)' if r.success else '✗ ' + r.error[:40]}"
+        )
 
         alpha_tenant.deactivate_kill_switch()
         print("  Kill switch de alpha DESATIVADO")

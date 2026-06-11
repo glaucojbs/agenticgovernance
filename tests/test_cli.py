@@ -16,11 +16,21 @@ def _run(monkeypatch, *argv):
 
 def _sample_log(path):
     audit = AuditLogger(path)
-    audit.log(AuditEventType.POLICY_DECISION, agent_id="a", agent_name="A", tool_name="read_files",
-              details={"decision": "ALLOW"})
+    audit.log(
+        AuditEventType.POLICY_DECISION,
+        agent_id="a",
+        agent_name="A",
+        tool_name="read_files",
+        details={"decision": "ALLOW"},
+    )
     audit.log(AuditEventType.ACTION_EXECUTED, agent_id="a", agent_name="A", tool_name="read_files")
-    audit.log(AuditEventType.ACTION_DENIED, agent_id="a", agent_name="A", tool_name="delete_files",
-              details={"reason": "destrutiva"})
+    audit.log(
+        AuditEventType.ACTION_DENIED,
+        agent_id="a",
+        agent_name="A",
+        tool_name="delete_files",
+        details={"reason": "destrutiva"},
+    )
     return path
 
 
@@ -31,7 +41,9 @@ class TestKillSwitchCli:
 
     def test_enable_then_status_then_disable(self, tmp_path, monkeypatch):
         ks = tmp_path / ".ks"
-        assert _run(monkeypatch, "--kill-switch-file", str(ks), "kill-switch", "enable", "motivo") == 0
+        assert (
+            _run(monkeypatch, "--kill-switch-file", str(ks), "kill-switch", "enable", "motivo") == 0
+        )
         assert ks.exists()
         assert _run(monkeypatch, "--kill-switch-file", str(ks), "kill-switch", "status") == 0
         assert _run(monkeypatch, "--kill-switch-file", str(ks), "kill-switch", "disable") == 0
@@ -57,10 +69,15 @@ class TestAuditCli:
 class TestPolicyCli:
     def test_eval_allow(self, tmp_path, monkeypatch):
         rc = _run(
-            monkeypatch, "policy", "eval",
-            "--policies-dir", str(POLICIES_DIR),
-            "--tool-name", "read_files",
-            "--scopes", "read:files",
+            monkeypatch,
+            "policy",
+            "eval",
+            "--policies-dir",
+            str(POLICIES_DIR),
+            "--tool-name",
+            "read_files",
+            "--scopes",
+            "read:files",
         )
         assert rc in (0, 1)  # decisão depende da política; comando deve rodar
 

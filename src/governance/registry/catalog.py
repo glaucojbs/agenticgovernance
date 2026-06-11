@@ -51,9 +51,7 @@ class AgentRecord(BaseModel):
     status: AgentStatus = AgentStatus.REGISTERED
     owner: str
     description: str = ""
-    registered_at: str = Field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    registered_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     approved_at: str | None = None
     deprecated_at: str | None = None
     eval_report: str | None = None  # URL ou referência ao relatório de eval
@@ -85,9 +83,7 @@ class ToolRegistry:
     def list_tools(self) -> list[ToolDefinition]:
         return list(self._tools.values())
 
-    def is_allowed_in_environment(
-        self, tool_name: str, environment: AgentEnvironment
-    ) -> bool:
+    def is_allowed_in_environment(self, tool_name: str, environment: AgentEnvironment) -> bool:
         tool = self._tools.get(tool_name)
         if not tool:
             return False

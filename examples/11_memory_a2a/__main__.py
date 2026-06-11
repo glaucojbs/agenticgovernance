@@ -61,7 +61,9 @@ def run() -> None:
         channel.register_agent("orchestrator", orch_signer.public_key_pem())
 
         msg = channel.send(
-            "orchestrator", orch_signer, "data-fetcher",
+            "orchestrator",
+            orch_signer,
+            "data-fetcher",
             payload={"task": "fetch_sales", "quarter": "Q3"},
             scopes=["read:database"],
         )
@@ -70,12 +72,17 @@ def run() -> None:
 
         # Replay da mesma mensagem
         replay = channel.receive(msg, required_scope="read:database")
-        print(f"  Replay (nonce repetido)  : {'✓ aceita' if replay.accepted else '✗ ' + replay.reason}")
+        print(
+            f"  Replay (nonce repetido)  : {'✓ aceita' if replay.accepted else '✗ ' + replay.reason}"
+        )
 
         # Mensagem adulterada após assinatura
         tampered = channel.send(
-            "orchestrator", orch_signer, "data-fetcher",
-            payload={"task": "fetch_sales"}, scopes=["read:database"],
+            "orchestrator",
+            orch_signer,
+            "data-fetcher",
+            payload={"task": "fetch_sales"},
+            scopes=["read:database"],
         )
         tampered.payload["task"] = "wipe_database"
         bad = channel.receive(tampered, required_scope="read:database")
@@ -83,15 +90,22 @@ def run() -> None:
 
         # Escopo insuficiente
         limited = channel.send(
-            "orchestrator", orch_signer, "data-fetcher",
-            payload={"task": "delete"}, scopes=["read:database"],
+            "orchestrator",
+            orch_signer,
+            "data-fetcher",
+            payload={"task": "delete"},
+            scopes=["read:database"],
         )
         noscope = channel.receive(limited, required_scope="delete:files")
-        print(f"  Escopo ausente           : {'✓ aceita' if noscope.accepted else '✗ ' + noscope.reason}")
+        print(
+            f"  Escopo ausente           : {'✓ aceita' if noscope.accepted else '✗ ' + noscope.reason}"
+        )
 
         print_header("TRILHA DE AUDITORIA (rejeições registradas)")
         for evt in audit.replay():
-            print(f"  #{evt.sequence:02d} {evt.event_type.value:<24} {evt.details.get('reason', '')[:50]}")
+            print(
+                f"  #{evt.sequence:02d} {evt.event_type.value:<24} {evt.details.get('reason', '')[:50]}"
+            )
 
 
 if __name__ == "__main__":

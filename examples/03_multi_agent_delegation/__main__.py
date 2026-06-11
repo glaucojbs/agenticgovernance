@@ -37,9 +37,7 @@ def run() -> None:
   não podem escalar privilégios além do que receberam.
 """)
 
-    runtime, audit, approval, tools, agents = build_runtime(
-        audit_subdir="03_multi_agent"
-    )
+    runtime, audit, approval, tools, agents = build_runtime(audit_subdir="03_multi_agent")
 
     # ── Cria as identidades ───────────────────────────────────────────────────
     orchestrator = make_identity(
@@ -105,15 +103,19 @@ def run() -> None:
     # ── Execuções legítimas ───────────────────────────────────────────────────
     print_header("EXECUÇÕES DENTRO DO ESCOPO")
 
-    result = runtime.execute(orchestrator, "send_email", {
-        "to": "manager@empresa.com",
-        "subject": "Análise completa",
-    })
+    result = runtime.execute(
+        orchestrator,
+        "send_email",
+        {
+            "to": "manager@empresa.com",
+            "subject": "Análise completa",
+        },
+    )
     print_result("OrchestratorAgent → send_email", result)
 
-    result = runtime.execute(data_fetcher, "query_database", {
-        "query": "SELECT * FROM dados LIMIT 100"
-    })
+    result = runtime.execute(
+        data_fetcher, "query_database", {"query": "SELECT * FROM dados LIMIT 100"}
+    )
     print_result("DataFetcherAgent → query_database", result)
 
     result = runtime.execute(report_agent, "read_files", {"path": "/reports/template.md"})
@@ -123,16 +125,18 @@ def run() -> None:
     print_header("TENTATIVAS DE ESCALADA DE PRIVILÉGIO")
 
     print("\n  Teste A: DataFetcher tenta enviar e-mail (não delegado)")
-    result = runtime.execute(data_fetcher, "send_email", {
-        "to": "hacker@external.com",
-        "subject": "Dados confidenciais",
-    })
+    result = runtime.execute(
+        data_fetcher,
+        "send_email",
+        {
+            "to": "hacker@external.com",
+            "subject": "Dados confidenciais",
+        },
+    )
     print_result("DataFetcherAgent → send_email (sem escopo)", result)
 
     print("\n  Teste B: ReportAgent tenta acessar banco (não delegado)")
-    result = runtime.execute(report_agent, "query_database", {
-        "query": "SELECT * FROM usuarios"
-    })
+    result = runtime.execute(report_agent, "query_database", {"query": "SELECT * FROM usuarios"})
     print_result("ReportAgent → query_database (sem escopo)", result)
 
     print("\n  Teste C: ReportAgent tenta deletar arquivos")
@@ -154,12 +158,18 @@ def run() -> None:
 
     # ── Rastreabilidade da cadeia ─────────────────────────────────────────────
     print_header("RASTREABILIDADE DA DELEGAÇÃO")
-    print(f"\n  Escopos efetivos do OrchestratorAgent : "
-          f"{[s.value for s in chain.get_effective_scopes(orchestrator.id)]}")
-    print(f"  Escopos efetivos do DataFetcherAgent  : "
-          f"{[s.value for s in chain.get_effective_scopes(data_fetcher.id)]}")
-    print(f"  Escopos efetivos do ReportAgent       : "
-          f"{[s.value for s in chain.get_effective_scopes(report_agent.id)]}")
+    print(
+        f"\n  Escopos efetivos do OrchestratorAgent : "
+        f"{[s.value for s in chain.get_effective_scopes(orchestrator.id)]}"
+    )
+    print(
+        f"  Escopos efetivos do DataFetcherAgent  : "
+        f"{[s.value for s in chain.get_effective_scopes(data_fetcher.id)]}"
+    )
+    print(
+        f"  Escopos efetivos do ReportAgent       : "
+        f"{[s.value for s in chain.get_effective_scopes(report_agent.id)]}"
+    )
     print(f"\n  parent_id do DataFetcher: {data_fetcher.parent_id}")
     print(f"  parent_id do ReportAgent: {report_agent.parent_id}")
 

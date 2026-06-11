@@ -23,6 +23,7 @@ from governance.audit.logger import AuditEventType, AuditLogger
 @dataclass
 class ControlEvidence:
     """Evidência de que um controle específico está operando."""
+
     control_id: str
     control_name: str
     framework: str
@@ -35,6 +36,7 @@ class ControlEvidence:
 @dataclass
 class ComplianceEvidence:
     """Relatório completo de evidências de compliance."""
+
     generated_at: str
     audit_period_start: str | None
     audit_period_end: str | None
@@ -210,12 +212,14 @@ class ComplianceReporter:
             if et not in event_samples:
                 event_samples[et] = []
             if len(event_samples[et]) < 3:
-                event_samples[et].append({
-                    "sequence": event.sequence,
-                    "timestamp": event.timestamp,
-                    "agent_id": event.agent_id,
-                    "tool_name": event.tool_name,
-                })
+                event_samples[et].append(
+                    {
+                        "sequence": event.sequence,
+                        "timestamp": event.timestamp,
+                        "agent_id": event.agent_id,
+                        "tool_name": event.tool_name,
+                    }
+                )
 
         # Agrega evidências por controle
         control_evidence: dict[str, ControlEvidence] = {}
@@ -233,9 +237,7 @@ class ComplianceReporter:
                         sample_events=[],
                     )
                 control_evidence[key].evidence_count += count
-                control_evidence[key].sample_events.extend(
-                    event_samples.get(et, [])[:2]
-                )
+                control_evidence[key].sample_events.extend(event_samples.get(et, [])[:2])
 
         return ComplianceEvidence(
             generated_at=datetime.now(UTC).isoformat(),
