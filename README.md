@@ -22,6 +22,10 @@ controles de supply chain em uma base pequena o suficiente para estudar e adapta
 - 9 ADRs, incluindo neutralidade de provedor e ferramenta de agente.
 - Nenhuma chave de API é necessária para rodar o projeto.
 
+A evolução é **incremental e diária**: o backlog priorizado vive em
+[`ROADMAP.md`](ROADMAP.md), cada mudança é registrada em [`CHANGELOG.md`](CHANGELOG.md), e o
+ritual está descrito no [Fluxo de Melhoria Diária](CONTRIBUTING.md#fluxo-de-melhoria-diária).
+
 O LLM usado nos exemplos é simulado pelo `MockLlmProvider`. A camada `governance.llm`
 materializa o contrato do [`ADR-009`](docs/adr/ADR-009-neutralidade-de-provedor-llm.md):
 o domínio depende das abstrações `LlmProvider`/`LlmRequest`/`LlmResponse`, e integrações
@@ -174,6 +178,9 @@ Comece por [`docs/00-visao-geral.md`](docs/00-visao-geral.md). Os ADRs ficam em
 | Aprovação | Integração com Slack, PagerDuty ou sistema interno |
 | Anomalia | Baselines estatísticos e modelos especializados |
 | Compliance | Automação de evidências para auditorias externas |
+
+Esses temas estão decompostos em itens executáveis na **Trilha A — Hardening de Produção**
+do [`ROADMAP.md`](ROADMAP.md), endereçados via seams de adapter para preservar a neutralidade.
 
 Este repositório é educacional. O mapeamento de compliance é ilustrativo e não substitui
 avaliação jurídica ou regulatória.
