@@ -43,9 +43,7 @@ class AnomalyAlert(BaseModel):
     rule_name: str
     description: str
     details: dict[str, Any] = Field(default_factory=dict)
-    detected_at: str = Field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    detected_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     tool_name: str | None = None
 
 
@@ -56,6 +54,7 @@ AlertHandler = Callable[[AnomalyAlert], None]
 def _default_alert_handler(alert: AnomalyAlert) -> None:
     """Handler padrão: imprime o alerta no stderr."""
     import sys
+
     print(
         f"\n  ⚠️  ANOMALIA [{alert.severity.upper()}] — {alert.rule_name}\n"
         f"     Agente : {alert.agent_id}\n"
@@ -163,76 +162,85 @@ class AnomalyDetector:
         # ── Regra 1: Velocidade ───────────────────────────────────────────────
         cpm = window.calls_per_minute
         if cpm > self._max_cpm:
-            alerts.append(self._make_alert(
-                severity=AlertSeverity.WARNING,
-                agent_id=agent_id,
-                tool_name=tool_name,
-                rule_name="high_call_rate",
-                description=(
-                    f"Taxa de chamadas {cpm:.1f}/min excede limite {self._max_cpm}/min"
-                ),
-                details={"calls_per_minute": cpm, "threshold": self._max_cpm},
-            ))
+            alerts.append(
+                self._make_alert(
+                    severity=AlertSeverity.WARNING,
+                    agent_id=agent_id,
+                    tool_name=tool_name,
+                    rule_name="high_call_rate",
+                    description=(
+                        f"Taxa de chamadas {cpm:.1f}/min excede limite {self._max_cpm}/min"
+                    ),
+                    details={"calls_per_minute": cpm, "threshold": self._max_cpm},
+                )
+            )
 
         # ── Regra 2: Taxa de negação ──────────────────────────────────────────
         deny_rate = window.deny_rate
         if deny_rate > self._max_deny_rate and len(window.call_times) >= 5:
-            alerts.append(self._make_alert(
-                severity=AlertSeverity.WARNING,
-                agent_id=agent_id,
-                tool_name=tool_name,
-                rule_name="high_deny_rate",
-                description=(
-                    f"Taxa de negação {deny_rate:.0%} excede limite {self._max_deny_rate:.0%}"
-                ),
-                details={
-                    "deny_rate": deny_rate,
-                    "total_calls": len(window.call_times),
-                    "denied": len(window.deny_times),
-                },
-            ))
+            alerts.append(
+                self._make_alert(
+                    severity=AlertSeverity.WARNING,
+                    agent_id=agent_id,
+                    tool_name=tool_name,
+                    rule_name="high_deny_rate",
+                    description=(
+                        f"Taxa de negação {deny_rate:.0%} excede limite {self._max_deny_rate:.0%}"
+                    ),
+                    details={
+                        "deny_rate": deny_rate,
+                        "total_calls": len(window.call_times),
+                        "denied": len(window.deny_times),
+                    },
+                )
+            )
 
         # ── Regra 3: Negações consecutivas (possível brute-force de ferramentas)
         if window.consecutive_denies >= self._max_consecutive_denies:
-            alerts.append(self._make_alert(
-                severity=AlertSeverity.CRITICAL,
-                agent_id=agent_id,
-                tool_name=tool_name,
-                rule_name="consecutive_denies",
-                description=(
-                    f"{window.consecutive_denies} negações consecutivas — "
-                    "possível tentativa de escalada de privilégio"
-                ),
-                details={"consecutive_denies": window.consecutive_denies},
-            ))
+            alerts.append(
+                self._make_alert(
+                    severity=AlertSeverity.CRITICAL,
+                    agent_id=agent_id,
+                    tool_name=tool_name,
+                    rule_name="consecutive_denies",
+                    description=(
+                        f"{window.consecutive_denies} negações consecutivas — "
+                        "possível tentativa de escalada de privilégio"
+                    ),
+                    details={"consecutive_denies": window.consecutive_denies},
+                )
+            )
 
         # ── Regra 4: Horário incomum (fora das horas de negócio) ──────────────
         hour = now_utc.hour
         if not (self._business_start <= hour < self._business_end) and result.success:
-            alerts.append(self._make_alert(
-                severity=AlertSeverity.INFO,
-                agent_id=agent_id,
-                tool_name=tool_name,
-                rule_name="off_hours_activity",
-                description=(
-                    f"Ação executada às {now_utc.strftime('%H:%M')} UTC "
-                    f"(fora do horário {self._business_start:02d}:00–{self._business_end:02d}:00)"
-                ),
-                details={"utc_hour": hour, "tool": tool_name},
-            ))
+            alerts.append(
+                self._make_alert(
+                    severity=AlertSeverity.INFO,
+                    agent_id=agent_id,
+                    tool_name=tool_name,
+                    rule_name="off_hours_activity",
+                    description=(
+                        f"Ação executada às {now_utc.strftime('%H:%M')} UTC "
+                        f"(fora do horário {self._business_start:02d}:00"
+                        f"–{self._business_end:02d}:00)"
+                    ),
+                    details={"utc_hour": hour, "tool": tool_name},
+                )
+            )
 
         # ── Regra 5: Primeira vez que este agente usa esta ferramenta ─────────
         if is_first_use and result.success and window.seen_tools:
-            alerts.append(self._make_alert(
-                severity=AlertSeverity.INFO,
-                agent_id=agent_id,
-                tool_name=tool_name,
-                rule_name="new_tool_first_use",
-                description=(
-                    f"Agente usou '{tool_name}' pela primeira vez"
-                ),
-                details={"tool": tool_name, "known_tools": list(window.seen_tools)},
-            ))
+            alerts.append(
+                self._make_alert(
+                    severity=AlertSeverity.INFO,
+                    agent_id=agent_id,
+                    tool_name=tool_name,
+                    rule_name="new_tool_first_use",
+                    description=(f"Agente usou '{tool_name}' pela primeira vez"),
+                    details={"tool": tool_name, "known_tools": list(window.seen_tools)},
+                )
+            )
 
         for alert in alerts:
             self._all_alerts.append(alert)

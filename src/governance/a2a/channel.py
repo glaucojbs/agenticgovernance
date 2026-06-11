@@ -129,9 +129,7 @@ class SignedAgentChannel:
         if public_pem is None:
             return self._reject(message, "remetente não registrado")
 
-        if not AuditSigner.verify_message(
-            message.signing_payload(), message.signature, public_pem
-        ):
+        if not AuditSigner.verify_message(message.signing_payload(), message.signature, public_pem):
             return self._reject(message, "assinatura inválida")
 
         if message.capability.is_expired():
@@ -141,9 +139,7 @@ class SignedAgentChannel:
             return self._reject(message, "nonce já utilizado — possível replay")
 
         if required_scope is not None and not message.capability.has_scope(required_scope):
-            return self._reject(
-                message, f"escopo exigido '{required_scope}' ausente no token"
-            )
+            return self._reject(message, f"escopo exigido '{required_scope}' ausente no token")
 
         # Aceita: consome o nonce para impedir replay futuro
         self._seen_nonces.add(message.nonce)

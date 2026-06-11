@@ -72,7 +72,9 @@ class TestGuardrailIntegration:
             cfg = GovernanceConfig(guardrails=GuardrailScanner.with_defaults())
             rt, _ = _build(tmp, cfg)
             agent = _agent([AgentScope.SEND_EMAIL])
-            result = rt.execute(agent, "send_email", {"to": "x@y.com", "body": "cpf 123.456.789-00"})
+            result = rt.execute(
+                agent, "send_email", {"to": "x@y.com", "body": "cpf 123.456.789-00"}
+            )
             assert not result.success
 
     def test_output_secret_leak_blocked(self):
@@ -133,9 +135,7 @@ class TestToolIntegrityIntegration:
             rt.execute(agent, "read_files", {"q": "ok"})
             audit_path = Path(tmp) / "a.jsonl"
             events = AuditLogger(audit_path).replay()
-            assert any(
-                e.event_type == AuditEventType.TOOL_INTEGRITY_VIOLATION for e in events
-            )
+            assert any(e.event_type == AuditEventType.TOOL_INTEGRITY_VIOLATION for e in events)
 
     def test_pinned_tool_passes(self):
         with tempfile.TemporaryDirectory() as tmp:

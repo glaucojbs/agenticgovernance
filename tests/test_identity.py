@@ -30,11 +30,10 @@ def make_identity(
 
 # ── Credential ─────────────────────────────────────────────────────────────
 
+
 class TestAgentCredential:
     def test_fresh_credential_is_valid(self) -> None:
-        cred = AgentCredential(
-            expires_at=datetime.now(UTC) + timedelta(hours=1)
-        )
+        cred = AgentCredential(expires_at=datetime.now(UTC) + timedelta(hours=1))
         assert cred.is_valid()
 
     def test_expired_credential_is_invalid(self) -> None:
@@ -48,21 +47,18 @@ class TestAgentCredential:
         assert not cred.is_valid()
 
     def test_revoked_credential_is_invalid(self) -> None:
-        cred = AgentCredential(
-            expires_at=datetime.now(UTC) + timedelta(hours=1)
-        )
+        cred = AgentCredential(expires_at=datetime.now(UTC) + timedelta(hours=1))
         cred.revoke("test")
         assert not cred.is_valid()
         assert cred.revoked_reason == "test"
 
     def test_invalid_expiry_raises(self) -> None:
         with pytest.raises(ValueError):
-            AgentCredential(
-                expires_at=datetime.now(UTC) - timedelta(hours=2)
-            )
+            AgentCredential(expires_at=datetime.now(UTC) - timedelta(hours=2))
 
 
 # ── AgentIdentity ──────────────────────────────────────────────────────────
+
 
 class TestAgentIdentity:
     def test_has_scope(self) -> None:
@@ -88,6 +84,7 @@ class TestAgentIdentity:
 
 
 # ── DelegationChain ────────────────────────────────────────────────────────
+
 
 class TestDelegationChain:
     def test_human_delegation(self) -> None:
@@ -122,6 +119,7 @@ class TestDelegationChain:
 
 
 # ── IdentityManager ────────────────────────────────────────────────────────
+
 
 class TestIdentityManager:
     def test_register_issues_credential(self) -> None:

@@ -27,6 +27,7 @@ AUDIT_DIR = Path("audit_logs")
 
 # ── Ferramentas simuladas ──────────────────────────────────────────────────────
 
+
 def _tool_read_files(path: str = "/data") -> str:
     return f"[SIMULADO] Conteúdo do arquivo: {path!r} → {{dados: [1, 2, 3], versao: '1.0'}}"
 
@@ -84,12 +85,15 @@ def build_runtime(
     log_dir.mkdir(parents=True, exist_ok=True)
     audit = AuditLogger(log_dir / "audit.jsonl")
 
-    budget = BudgetGuard(budget_config or BudgetConfig(
-        max_cost_usd=1.0,
-        max_tokens=50_000,
-        max_calls=100,
-        max_calls_per_minute=60,
-    ))
+    budget = BudgetGuard(
+        budget_config
+        or BudgetConfig(
+            max_cost_usd=1.0,
+            max_tokens=50_000,
+            max_calls=100,
+            max_calls_per_minute=60,
+        )
+    )
 
     ks_path = kill_switch_path or Path(f".kill_switch_{audit_subdir}")
     # Garante que o kill switch começa desativado

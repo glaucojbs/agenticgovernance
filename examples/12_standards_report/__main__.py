@@ -52,8 +52,10 @@ def run() -> None:
         tools = ToolRegistry()
         tools.register(
             ToolDefinition(
-                name="read_files", description="Lê arquivos",
-                risk_level=RiskLevel.LOW, required_scope=AgentScope.READ_FILES,
+                name="read_files",
+                description="Lê arquivos",
+                risk_level=RiskLevel.LOW,
+                required_scope=AgentScope.READ_FILES,
             ),
             implementation=lambda **kw: "relatório de vendas",
         )
@@ -74,8 +76,11 @@ def run() -> None:
             ),
         )
         agent = make_identity(
-            "std-agent", "StandardsAgent", "alice@empresa.com",
-            scopes=[AgentScope.READ_FILES], environment=AgentEnvironment.DEV,
+            "std-agent",
+            "StandardsAgent",
+            "alice@empresa.com",
+            scopes=[AgentScope.READ_FILES],
+            environment=AgentEnvironment.DEV,
         )
 
         print_header("1. Execuções instrumentadas (spans gen_ai.*)")
@@ -91,7 +96,9 @@ def run() -> None:
 
         print_header("3. Model Card (EU AI Act GPAI Art.53)")
         card = generate_model_card(
-            name="StandardsAgent", version="1.0.0", owner="alice@empresa.com",
+            name="StandardsAgent",
+            version="1.0.0",
+            owner="alice@empresa.com",
             intended_use="Análise de relatórios de vendas (read-only) em dev",
             granted_scopes=["read:files"],
         )

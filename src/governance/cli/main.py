@@ -95,6 +95,7 @@ def cmd_audit_stats(args: argparse.Namespace) -> int:
         return 0
 
     from collections import Counter
+
     type_counts = Counter(e.event_type.value for e in events)
     agent_counts = Counter(e.agent_id for e in events if e.agent_id)
 
@@ -199,13 +200,21 @@ def cmd_policy_dryrun(args: argparse.Namespace) -> int:
         # Requests de exemplo para demonstração
         requests = [
             ActionRequest(
-                agent_id="test", agent_name="Test",
-                tool_name=tool, parameters={},
+                agent_id="test",
+                agent_name="Test",
+                tool_name=tool,
+                parameters={},
                 environment=AgentEnvironment.DEV,
                 scopes=[AgentScope.READ_FILES, AgentScope.READ_DATABASE],
                 risk_level=RiskLevel.LOW,
             )
-            for tool in ["read_files", "delete_files", "query_database", "send_email", "unknown_tool"]
+            for tool in [
+                "read_files",
+                "delete_files",
+                "query_database",
+                "send_email",
+                "unknown_tool",
+            ]
         ]
 
     report = dry_run.compare(requests)

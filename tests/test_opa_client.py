@@ -11,8 +11,10 @@ POLICIES_DIR = Path(__file__).parent.parent / "policies"
 
 def make_request(tool: str = "read_files", scopes: list | None = None) -> ActionRequest:
     return ActionRequest(
-        agent_id="test", agent_name="Test",
-        tool_name=tool, parameters={},
+        agent_id="test",
+        agent_name="Test",
+        tool_name=tool,
+        parameters={},
         environment=AgentEnvironment.DEV,
         scopes=scopes or [AgentScope.READ_FILES],
         risk_level=RiskLevel.LOW,

@@ -1,6 +1,5 @@
 """Testes para o SecretStore simulado."""
 
-
 import pytest
 
 from governance.vault.store import (
@@ -14,10 +13,12 @@ from governance.vault.store import (
 @pytest.fixture()
 def store() -> SecretStore:
     s = SecretStore()
-    s.add_policy(SecretPolicy(
-        path_prefix="secrets/",
-        allowed_agent_ids=["agent-a", "agent-b"],
-    ))
+    s.add_policy(
+        SecretPolicy(
+            path_prefix="secrets/",
+            allowed_agent_ids=["agent-a", "agent-b"],
+        )
+    )
     return s
 
 

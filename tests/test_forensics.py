@@ -13,14 +13,33 @@ def log_with_incident(tmp_path: Path) -> Path:
     log = tmp_path / "incident.jsonl"
     logger = AuditLogger(log)
     # Atividade normal
-    logger.log(AuditEventType.ACTION_EXECUTED, agent_id="agent-1", agent_name="A1", tool_name="read_files")
-    logger.log(AuditEventType.ACTION_EXECUTED, agent_id="agent-1", agent_name="A1", tool_name="read_files")
+    logger.log(
+        AuditEventType.ACTION_EXECUTED, agent_id="agent-1", agent_name="A1", tool_name="read_files"
+    )
+    logger.log(
+        AuditEventType.ACTION_EXECUTED, agent_id="agent-1", agent_name="A1", tool_name="read_files"
+    )
     # Tentativas maliciosas
     for _ in range(4):
-        logger.log(AuditEventType.ACTION_DENIED, agent_id="agent-1", agent_name="A1", tool_name="delete_files")
-    logger.log(AuditEventType.KILL_SWITCH_TRIGGERED, agent_id="agent-1", agent_name="A1", tool_name="read_files")
+        logger.log(
+            AuditEventType.ACTION_DENIED,
+            agent_id="agent-1",
+            agent_name="A1",
+            tool_name="delete_files",
+        )
+    logger.log(
+        AuditEventType.KILL_SWITCH_TRIGGERED,
+        agent_id="agent-1",
+        agent_name="A1",
+        tool_name="read_files",
+    )
     # Outro agente sem incidente
-    logger.log(AuditEventType.ACTION_EXECUTED, agent_id="agent-2", agent_name="A2", tool_name="query_database")
+    logger.log(
+        AuditEventType.ACTION_EXECUTED,
+        agent_id="agent-2",
+        agent_name="A2",
+        tool_name="query_database",
+    )
     return log
 
 

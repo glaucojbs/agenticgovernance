@@ -35,6 +35,7 @@ from governance.runtime.governed import ExecutionResult, GovernedAgentRuntime
 @dataclass
 class TenantConfig:
     """Configuração de um tenant."""
+
     tenant_id: str
     name: str
     owner: str
@@ -140,6 +141,7 @@ class Tenant:
     def register_agent(self, identity: AgentIdentity, auto_approve: bool = False) -> None:
         """Registra um agente neste tenant e emite sua credencial."""
         from governance.registry.catalog import AgentRecord
+
         record = AgentRecord(
             agent_id=identity.id,
             name=identity.name,

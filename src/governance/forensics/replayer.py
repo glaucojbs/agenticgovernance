@@ -38,6 +38,7 @@ class TimelineEntry:
 @dataclass
 class IncidentTimeline:
     """Timeline reconstruída de um ou mais agentes."""
+
     entries: list[TimelineEntry] = field(default_factory=list)
     agent_ids: list[str] = field(default_factory=list)
 
@@ -52,7 +53,7 @@ class IncidentTimeline:
     last_event_ts: str | None = None
 
     # Padrões detectados
-    first_tool_use: dict[str, str] = field(default_factory=dict)   # tool → timestamp
+    first_tool_use: dict[str, str] = field(default_factory=dict)  # tool → timestamp
     consecutive_deny_windows: list[dict[str, Any]] = field(default_factory=list)
     tools_executed: list[str] = field(default_factory=list)
     tools_attempted_denied: list[str] = field(default_factory=list)
@@ -103,7 +104,9 @@ class IncidentTimeline:
             denied_str = ", ".join(sorted(set(self.tools_attempted_denied)))[:54]
             lines.append(f"║  Tentativas  : {denied_str:<54}║")
         if self.consecutive_deny_windows:
-            lines.append(f"║  ⚠ Janelas de negação consecutiva: {len(self.consecutive_deny_windows):<34}║")
+            lines.append(
+                f"║  ⚠ Janelas de negação consecutiva: {len(self.consecutive_deny_windows):<34}║"
+            )
         lines.append("╚" + "═" * 70 + "╝")
         return "\n".join(lines)
 
@@ -190,12 +193,14 @@ class IncidentReplayer:
                     deny_window_start = event.timestamp
                 if consecutive_denies >= 3 and deny_window_start:
                     # Registra janela de negações consecutivas suspeitas
-                    timeline.consecutive_deny_windows.append({
-                        "start": deny_window_start,
-                        "end": event.timestamp,
-                        "count": consecutive_denies,
-                        "agent_id": event.agent_id,
-                    })
+                    timeline.consecutive_deny_windows.append(
+                        {
+                            "start": deny_window_start,
+                            "end": event.timestamp,
+                            "count": consecutive_denies,
+                            "agent_id": event.agent_id,
+                        }
+                    )
 
             elif et == AuditEventType.APPROVAL_GRANTED:
                 timeline.approved_actions += 1
@@ -212,26 +217,25 @@ class IncidentReplayer:
                 AuditEventType.ACTION_EXECUTED,
                 AuditEventType.APPROVAL_GRANTED,
             )
-            timeline.entries.append(TimelineEntry(
-                sequence=event.sequence,
-                timestamp=event.timestamp,
-                event_type=et,
-                agent_id=event.agent_id or "",
-                agent_name=event.agent_name or "",
-                tool_name=event.tool_name or "",
-                success=success,
-                details=event.details,
-            ))
+            timeline.entries.append(
+                TimelineEntry(
+                    sequence=event.sequence,
+                    timestamp=event.timestamp,
+                    event_type=et,
+                    agent_id=event.agent_id or "",
+                    agent_name=event.agent_name or "",
+                    tool_name=event.tool_name or "",
+                    success=success,
+                    details=event.details,
+                )
+            )
 
         return timeline
 
     def find_first_occurrence(self, tool_name: str) -> TimelineEntry | None:
         """Encontra a primeira vez que uma ferramenta foi usada (sucesso)."""
         for event in self._logger.replay():
-            if (
-                event.event_type == AuditEventType.ACTION_EXECUTED
-                and event.tool_name == tool_name
-            ):
+            if event.event_type == AuditEventType.ACTION_EXECUTED and event.tool_name == tool_name:
                 return TimelineEntry(
                     sequence=event.sequence,
                     timestamp=event.timestamp,

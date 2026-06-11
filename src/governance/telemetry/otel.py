@@ -24,11 +24,13 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExport
 
 
 def _make_resource() -> Resource:
-    return Resource.create({
-        "service.name": os.getenv("OTEL_SERVICE_NAME", "agentic-governance"),
-        "service.version": "1.0.0",
-        "deployment.environment": os.getenv("GOVERNANCE_ENV", "dev"),
-    })
+    return Resource.create(
+        {
+            "service.name": os.getenv("OTEL_SERVICE_NAME", "agentic-governance"),
+            "service.version": "1.0.0",
+            "deployment.environment": os.getenv("GOVERNANCE_ENV", "dev"),
+        }
+    )
 
 
 class GovernanceTelemetry:
@@ -146,21 +148,21 @@ class GovernanceTelemetry:
 
         if exporter_type == "otlp":
             from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
             endpoint = os.getenv("OTEL_ENDPOINT", "http://localhost:4318")
             tracer_provider.add_span_processor(
                 BatchSpanProcessor(OTLPSpanExporter(endpoint=f"{endpoint}/v1/traces"))
             )
         else:
             if export_to_console:
-                tracer_provider.add_span_processor(
-                    BatchSpanProcessor(ConsoleSpanExporter())
-                )
+                tracer_provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
 
         trace.set_tracer_provider(tracer_provider)
 
         # ── Metrics provider ──────────────────────────────────────────────────
         if exporter_type == "otlp":
             from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+
             endpoint = os.getenv("OTEL_ENDPOINT", "http://localhost:4318")
             reader = PeriodicExportingMetricReader(
                 OTLPMetricExporter(endpoint=f"{endpoint}/v1/metrics"),

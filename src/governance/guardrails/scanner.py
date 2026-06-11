@@ -120,8 +120,14 @@ _INJECTION_PATTERNS: list[tuple[str, str]] = [
     ("override_system", r"\b(new|updated|real)\s+(system\s+)?(prompt|instructions?)\b"),
     ("reveal_prompt", r"\b(reveal|show|print|repeat|leak)\b.{0,30}\b(system\s+)?prompt\b"),
     ("jailbreak_persona", r"\b(DAN\s+mode|developer\s+mode|do\s+anything\s+now|jailbreak)\b"),
-    ("act_as", r"\b(you\s+are\s+now|act\s+as|pretend\s+to\s+be)\b.{0,40}\b(no\s+restrictions?|unrestricted|admin|root)\b"),
-    ("exfil_instruction", r"\b(send|forward|exfiltrate|upload|post)\b.{0,30}\b(to|email|webhook|url|http)\b.{0,40}\b(secret|password|token|key|credential|data)\b"),
+    (
+        "act_as",
+        r"\b(you\s+are\s+now|act\s+as|pretend\s+to\s+be)\b.{0,40}\b(no\s+restrictions?|unrestricted|admin|root)\b",
+    ),
+    (
+        "exfil_instruction",
+        r"\b(send|forward|exfiltrate|upload|post)\b.{0,30}\b(to|email|webhook|url|http)\b.{0,40}\b(secret|password|token|key|credential|data)\b",
+    ),
 ]
 
 
@@ -335,9 +341,7 @@ class GuardrailScanner:
         tool_name: str | None = None,
     ) -> GuardrailResult:
         """Varre os parâmetros de entrada de uma ferramenta (direção INPUT)."""
-        return self.scan_text(
-            _stringify(parameters), ScanDirection.INPUT, tool_name=tool_name
-        )
+        return self.scan_text(_stringify(parameters), ScanDirection.INPUT, tool_name=tool_name)
 
     def scan_output(
         self,

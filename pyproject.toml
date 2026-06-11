@@ -25,7 +25,9 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
-    "ruff>=0.4",
+    # Pinned: ruff's default format style evolves between releases. An unpinned
+    # range made `ruff format --check` non-deterministic between local and CI.
+    "ruff==0.15.15",
 ]
 # Adapters de provedor — opcionais. A instalação base permanece offline;
 # nenhum SDK de fornecedor é importado fora de governance.llm.adapters.

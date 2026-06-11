@@ -38,6 +38,7 @@ class SecretVersion:
 @dataclass
 class SecretLease:
     """Lease retornado ao agente ao ler um segredo."""
+
     lease_id: str
     path: str
     version: int
@@ -56,10 +57,11 @@ class SecretLease:
 @dataclass
 class SecretPolicy:
     """Quais agent_ids têm acesso a qual path (prefixo)."""
+
     path_prefix: str
     allowed_agent_ids: list[str]
-    allow_list: bool = True   # True=allow list, False=deny list
-    max_versions: int = 5     # versões preservadas
+    allow_list: bool = True  # True=allow list, False=deny list
+    max_versions: int = 5  # versões preservadas
 
     def allows(self, agent_id: str) -> bool:
         if self.allow_list:
@@ -117,9 +119,7 @@ class SecretStore:
                     )
                 return
         # Sem política correspondente: nega por padrão
-        raise SecretAccessDeniedError(
-            f"Nenhuma política de acesso para '{path}' — acesso negado"
-        )
+        raise SecretAccessDeniedError(f"Nenhuma política de acesso para '{path}' — acesso negado")
 
     # ── Operações ────────────────────────────────────────────────────────────
 
@@ -138,12 +138,14 @@ class SecretStore:
         next_version = (versions[-1].version + 1) if versions else 1
         expires_at = (time.monotonic() + ttl_seconds) if ttl_seconds else None
 
-        versions.append(SecretVersion(
-            value=value,
-            version=next_version,
-            created_at=time.monotonic(),
-            expires_at=expires_at,
-        ))
+        versions.append(
+            SecretVersion(
+                value=value,
+                version=next_version,
+                created_at=time.monotonic(),
+                expires_at=expires_at,
+            )
+        )
 
         # Mantém apenas as últimas N versões
         max_v = next(
@@ -153,10 +155,15 @@ class SecretStore:
         if len(versions) > max_v:
             versions[:] = versions[-max_v:]
 
-        self._audit_log.append(SecretAccessEvent(
-            agent_id=written_by, path=path, operation="write",
-            version=next_version, lease_id="",
-        ))
+        self._audit_log.append(
+            SecretAccessEvent(
+                agent_id=written_by,
+                path=path,
+                operation="write",
+                version=next_version,
+                lease_id="",
+            )
+        )
         return next_version
 
     def read(
@@ -170,10 +177,17 @@ class SecretStore:
         self._check_access(agent_id, path)
 
         if path not in self._secrets or not self._secrets[path]:
-            self._audit_log.append(SecretAccessEvent(
-                agent_id=agent_id, path=path, operation="read",
-                version=0, lease_id="", success=False, error="not found",
-            ))
+            self._audit_log.append(
+                SecretAccessEvent(
+                    agent_id=agent_id,
+                    path=path,
+                    operation="read",
+                    version=0,
+                    lease_id="",
+                    success=False,
+                    error="not found",
+                )
+            )
             raise SecretNotFoundError(f"Segredo '{path}' não encontrado")
 
         versions = self._secrets[path]
@@ -183,9 +197,7 @@ class SecretStore:
             sv = versions[-1]
 
         if sv is None or sv.is_expired():
-            raise SecretNotFoundError(
-                f"Versão {version} de '{path}' não encontrada ou expirada"
-            )
+            raise SecretNotFoundError(f"Versão {version} de '{path}' não encontrada ou expirada")
 
         lease_id = secrets.token_hex(16)
         lease = SecretLease(
@@ -198,10 +210,15 @@ class SecretStore:
             expires_at=time.monotonic() + lease_ttl,
         )
         self._leases[lease_id] = lease
-        self._audit_log.append(SecretAccessEvent(
-            agent_id=agent_id, path=path, operation="read",
-            version=sv.version, lease_id=lease_id,
-        ))
+        self._audit_log.append(
+            SecretAccessEvent(
+                agent_id=agent_id,
+                path=path,
+                operation="read",
+                version=sv.version,
+                lease_id=lease_id,
+            )
+        )
         return lease
 
     def renew_lease(self, lease_id: str, agent_id: str) -> SecretLease:
@@ -211,19 +228,29 @@ class SecretStore:
         if not lease.renewable:
             raise PermissionError(f"Lease '{lease_id}' não é renovável")
         lease.expires_at = time.monotonic() + lease.ttl_seconds
-        self._audit_log.append(SecretAccessEvent(
-            agent_id=agent_id, path=lease.path, operation="renew",
-            version=lease.version, lease_id=lease_id,
-        ))
+        self._audit_log.append(
+            SecretAccessEvent(
+                agent_id=agent_id,
+                path=lease.path,
+                operation="renew",
+                version=lease.version,
+                lease_id=lease_id,
+            )
+        )
         return lease
 
     def revoke_lease(self, lease_id: str) -> None:
         lease = self._leases.pop(lease_id, None)
         if lease:
-            self._audit_log.append(SecretAccessEvent(
-                agent_id="system", path=lease.path, operation="revoke",
-                version=lease.version, lease_id=lease_id,
-            ))
+            self._audit_log.append(
+                SecretAccessEvent(
+                    agent_id="system",
+                    path=lease.path,
+                    operation="revoke",
+                    version=lease.version,
+                    lease_id=lease_id,
+                )
+            )
 
     def rotate(self, path: str, new_value: Any, written_by: str = "operator") -> int:
         """Rotaciona um segredo — mantém versão anterior disponível brevemente."""
@@ -232,10 +259,15 @@ class SecretStore:
         for hook in self._rotation_hooks.get(path, []):
             with contextlib.suppress(Exception):
                 hook(path, new_value)
-        self._audit_log.append(SecretAccessEvent(
-            agent_id=written_by, path=path, operation="rotate",
-            version=version, lease_id="",
-        ))
+        self._audit_log.append(
+            SecretAccessEvent(
+                agent_id=written_by,
+                path=path,
+                operation="rotate",
+                version=version,
+                lease_id="",
+            )
+        )
         return version
 
     def on_rotation(self, path: str, callback: Callable[[str, Any], None]) -> None:

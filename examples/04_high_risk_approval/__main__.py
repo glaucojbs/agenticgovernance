@@ -45,7 +45,7 @@ def run() -> None:
 
     runtime_approve, audit_approve, approval_approve, _, _ = build_runtime(
         audit_subdir="04_high_risk_approve",
-        auto_approve=True,   # simula operador que aprova
+        auto_approve=True,  # simula operador que aprova
         kill_switch_path=ks_path,
     )
 
@@ -71,7 +71,7 @@ def run() -> None:
 
     runtime_deny, audit_deny, approval_deny, _, _ = build_runtime(
         audit_subdir="04_high_risk_deny",
-        auto_deny=True,   # simula operador que nega
+        auto_deny=True,  # simula operador que nega
         kill_switch_path=ks_path,
     )
 

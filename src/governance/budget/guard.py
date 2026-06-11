@@ -34,9 +34,7 @@ class BudgetStatus(BaseModel):
     total_cost_usd: float = 0.0
     total_tokens: int = 0
     total_calls: int = 0
-    last_reset: str = Field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    last_reset: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     blocked: bool = False
     block_reason: str | None = None
 
@@ -100,8 +98,7 @@ class BudgetGuard:
         # Verifica tokens
         if status.total_tokens + call_tokens > cfg.max_tokens:
             reason = (
-                f"tokens acumulados {status.total_tokens} + {call_tokens} "
-                f"> limite {cfg.max_tokens}"
+                f"tokens acumulados {status.total_tokens} + {call_tokens} > limite {cfg.max_tokens}"
             )
             status.blocked = True
             status.block_reason = reason

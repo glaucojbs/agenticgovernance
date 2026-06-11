@@ -128,7 +128,9 @@ class ToolIntegrityRegistry:
         """Verifica a integridade de uma ferramenta contra seu pin."""
         definition = registry.get(tool_name)
         if definition is None:
-            return IntegrityResult(ok=False, tool_name=tool_name, reason="ferramenta não registrada")
+            return IntegrityResult(
+                ok=False, tool_name=tool_name, reason="ferramenta não registrada"
+            )
         impl = registry.get_implementation(tool_name)
         return self.verify_definition(definition, impl)
 

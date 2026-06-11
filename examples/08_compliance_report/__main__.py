@@ -64,10 +64,10 @@ def run() -> None:
 
         tools = ToolRegistry()
         for name, risk, scope in [
-            ("read_files",     RiskLevel.LOW,    AgentScope.READ_FILES),
-            ("query_database", RiskLevel.LOW,    AgentScope.READ_DATABASE),
-            ("send_email",     RiskLevel.MEDIUM, AgentScope.SEND_EMAIL),
-            ("delete_files",   RiskLevel.HIGH,   AgentScope.DELETE_FILES),
+            ("read_files", RiskLevel.LOW, AgentScope.READ_FILES),
+            ("query_database", RiskLevel.LOW, AgentScope.READ_DATABASE),
+            ("send_email", RiskLevel.MEDIUM, AgentScope.SEND_EMAIL),
+            ("delete_files", RiskLevel.HIGH, AgentScope.DELETE_FILES),
         ]:
             tools.register(
                 ToolDefinition(name=name, description=name, risk_level=risk, required_scope=scope),
@@ -85,7 +85,8 @@ def run() -> None:
         )
 
         agent = make_identity(
-            agent_id="compliance-agent", name="ComplianceAgent",
+            agent_id="compliance-agent",
+            name="ComplianceAgent",
             owner="alice@empresa.com",
             scopes=[AgentScope.READ_FILES, AgentScope.READ_DATABASE, AgentScope.SEND_EMAIL],
             environment=AgentEnvironment.DEV,
@@ -93,12 +94,12 @@ def run() -> None:
 
         print_header("EXECUÇÕES COM PII MASKING ATIVO")
         # Parâmetros que contêm PII — serão mascarados antes de gravar no log
-        masked_runtime.execute(agent, "query_database", {
-            "query": "SELECT * FROM clientes WHERE cpf='123.456.789-00'"
-        })
-        masked_runtime.execute(agent, "send_email", {
-            "to": "cliente@exemplo.com", "subject": "Relatório mensal"
-        })
+        masked_runtime.execute(
+            agent, "query_database", {"query": "SELECT * FROM clientes WHERE cpf='123.456.789-00'"}
+        )
+        masked_runtime.execute(
+            agent, "send_email", {"to": "cliente@exemplo.com", "subject": "Relatório mensal"}
+        )
         masked_runtime.execute(agent, "read_files", {"path": "/dados/relatorio.csv"})
         masked_runtime.execute(agent, "delete_files", {"path": "/tmp/cache"})
 
@@ -119,7 +120,8 @@ def run() -> None:
             auto_approve_count=2,
         )
         req = gate_approve.request_approval(
-            agent_id=agent.id, agent_name=agent.name,
+            agent_id=agent.id,
+            agent_name=agent.name,
             tool_name="wipe_database",
             parameters={"confirm": "yes", "database": "producao"},
             risk_level="critical",
@@ -139,11 +141,16 @@ def run() -> None:
             auto_deny_count=1,
         )
         req2 = gate_deny.request_approval(
-            agent_id=agent.id, agent_name=agent.name,
-            tool_name="wipe_database", parameters={},
-            risk_level="critical", reason="teste de negação",
+            agent_id=agent.id,
+            agent_name=agent.name,
+            tool_name="wipe_database",
+            parameters={},
+            risk_level="critical",
+            reason="teste de negação",
         )
-        print(f"\n  Com 1 negação: {'✓ OK' if req2.is_granted else '✗ NEGADA (1 deny impossibilita 2 approves)'}")
+        print(
+            f"\n  Com 1 negação: {'✓ OK' if req2.is_granted else '✗ NEGADA (1 deny impossibilita 2 approves)'}"
+        )
 
         # ── 3. Policy Dry-run ─────────────────────────────────────────────────
         print_header("CAMADA 3 — Policy Dry-run (mudança de política)")
@@ -153,6 +160,7 @@ def run() -> None:
         proposed_dir.mkdir()
         # Copia as políticas atuais e adiciona uma restrição
         import shutil
+
         for f in Path(POLICIES_DIR).glob("*.yaml"):
             shutil.copy(f, proposed_dir / f.name)
         # Adiciona regra extra que nega query_database em prod
@@ -169,8 +177,10 @@ def run() -> None:
         dry_run = PolicyDryRun.from_dirs(POLICIES_DIR, proposed_dir)
         test_requests = [
             ActionRequest(
-                agent_id="test", agent_name="Test",
-                tool_name=tool, parameters={},
+                agent_id="test",
+                agent_name="Test",
+                tool_name=tool,
+                parameters={},
                 environment=env,
                 scopes=[AgentScope.READ_FILES, AgentScope.READ_DATABASE, AgentScope.SEND_EMAIL],
                 risk_level=RiskLevel.LOW,
@@ -197,8 +207,12 @@ def run() -> None:
         print_header("VERIFICAÇÃO FINAL — Assinaturas + Chain")
         sig_result = signed_audit.verify_signatures(signer.public_key_pem())
         chain_result = signed_audit.verify_chain()
-        print(f"  Assinaturas Ed25519 : {'✓ todas válidas' if sig_result['valid'] else '✗ inválidas'} ({sig_result['total']} entradas)")
-        print(f"  Hash chain          : {'✓ válida' if chain_result.valid else '✗ inválida'} ({chain_result.total_entries} entradas)")
+        print(
+            f"  Assinaturas Ed25519 : {'✓ todas válidas' if sig_result['valid'] else '✗ inválidas'} ({sig_result['total']} entradas)"
+        )
+        print(
+            f"  Hash chain          : {'✓ válida' if chain_result.valid else '✗ inválida'} ({chain_result.total_entries} entradas)"
+        )
 
 
 if __name__ == "__main__":

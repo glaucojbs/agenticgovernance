@@ -37,9 +37,7 @@ class ApprovalRequest(BaseModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
     risk_level: str
     reason: str  # motivo pelo qual a aprovação é necessária
-    requested_at: str = Field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    requested_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     decision: ApprovalDecision = ApprovalDecision.PENDING
     decided_at: str | None = None
     decided_by: str | None = None
@@ -88,9 +86,7 @@ class ApprovalGate:
 
     def activate_kill_switch(self, reason: str = "activated by operator") -> None:
         """Ativa o kill switch, impedindo toda execução de agentes."""
-        self._kill_switch_path.write_text(
-            f"{datetime.now(UTC).isoformat()} | {reason}\n"
-        )
+        self._kill_switch_path.write_text(f"{datetime.now(UTC).isoformat()} | {reason}\n")
 
     def deactivate_kill_switch(self) -> None:
         """Desativa o kill switch."""
@@ -151,9 +147,7 @@ class ApprovalGate:
         print("=" * 60 + "\n")
         return self._record_decision(req, approved, notes)
 
-    def _record_decision(
-        self, req: ApprovalRequest, approved: bool, notes: str
-    ) -> ApprovalRequest:
+    def _record_decision(self, req: ApprovalRequest, approved: bool, notes: str) -> ApprovalRequest:
         req.decision = ApprovalDecision.GRANTED if approved else ApprovalDecision.DENIED
         req.decided_at = datetime.now(UTC).isoformat()
         req.decided_by = "human_approver"

@@ -22,6 +22,7 @@ from typing import Any
 
 class MaskingPattern(StrEnum):
     """Padrões de PII pré-definidos."""
+
     EMAIL = "email"
     CPF = "cpf"
     CNPJ = "cnpj"
@@ -33,28 +34,21 @@ class MaskingPattern(StrEnum):
 
 
 _BUILTIN_PATTERNS: dict[MaskingPattern, str] = {
-    MaskingPattern.EMAIL:
-        r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b",
-    MaskingPattern.CPF:
-        r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b",
-    MaskingPattern.CNPJ:
-        r"\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b",
-    MaskingPattern.PHONE_BR:
-        r"\b(?:\+55\s?)?(?:\(?\d{2}\)?\s?)(?:9\s?)?\d{4}[\s\-]?\d{4}\b",
-    MaskingPattern.CREDIT_CARD:
-        r"\b(?:\d[ \-]?){13,19}\b",
-    MaskingPattern.JWT_TOKEN:
-        r"eyJ[A-Za-z0-9\-_]+\.eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+",
-    MaskingPattern.API_KEY:
-        r"\b(?:sk|pk|api|key|token|secret)[_\-]?[A-Za-z0-9]{20,}\b",
-    MaskingPattern.IP_ADDRESS:
-        r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+    MaskingPattern.EMAIL: r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b",
+    MaskingPattern.CPF: r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b",
+    MaskingPattern.CNPJ: r"\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b",
+    MaskingPattern.PHONE_BR: r"\b(?:\+55\s?)?(?:\(?\d{2}\)?\s?)(?:9\s?)?\d{4}[\s\-]?\d{4}\b",
+    MaskingPattern.CREDIT_CARD: r"\b(?:\d[ \-]?){13,19}\b",
+    MaskingPattern.JWT_TOKEN: r"eyJ[A-Za-z0-9\-_]+\.eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+",
+    MaskingPattern.API_KEY: r"\b(?:sk|pk|api|key|token|secret)[_\-]?[A-Za-z0-9]{20,}\b",
+    MaskingPattern.IP_ADDRESS: r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
 }
 
 
 @dataclass
 class MaskingRule:
     """Uma regra de mascaramento: padrão regex → texto de substituição."""
+
     pattern: str
     replacement: str = "[REDACTED]"
     name: str = ""

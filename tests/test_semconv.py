@@ -25,9 +25,7 @@ class TestSemConv:
 
     def test_optional_attributes_omitted_when_none(self):
         span = _FakeSpan()
-        semconv.set_tool_span_attributes(
-            span, agent_id="a", agent_name="n", tool_name="t"
-        )
+        semconv.set_tool_span_attributes(span, agent_id="a", agent_name="n", tool_name="t")
         assert semconv.GEN_AI_REQUEST_MODEL not in span.attrs
         assert semconv.GEN_AI_USAGE_INPUT_TOKENS not in span.attrs
 

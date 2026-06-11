@@ -121,10 +121,7 @@ class CircuitBreaker:
 
         if self._state == CircuitState.HALF_OPEN:
             self._transition(CircuitState.OPEN, "falha em HALF_OPEN — circuito reaberto")
-        elif (
-            self._state == CircuitState.CLOSED
-            and self._failure_count >= self._failure_threshold
-        ):
+        elif self._state == CircuitState.CLOSED and self._failure_count >= self._failure_threshold:
             self._transition(
                 CircuitState.OPEN,
                 f"{self._failure_count} falhas consecutivas — circuito aberto",
@@ -164,6 +161,7 @@ class CircuitBreaker:
 
 class CircuitOpenError(Exception):
     """Levantada quando o circuit breaker está OPEN."""
+
     pass
 
 

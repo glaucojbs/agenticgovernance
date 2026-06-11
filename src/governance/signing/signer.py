@@ -202,9 +202,7 @@ class SignedAuditLogger(AuditLogger):
         self._rewrite_last_entry_with_signature(event, signature)
         return event
 
-    def _rewrite_last_entry_with_signature(
-        self, event: AuditEvent, signature: str
-    ) -> None:
+    def _rewrite_last_entry_with_signature(self, event: AuditEvent, signature: str) -> None:
         """Lê o arquivo, substitui a última linha pela versão assinada."""
         try:
             content = self._log_path.read_text()

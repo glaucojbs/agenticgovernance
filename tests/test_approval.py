@@ -63,9 +63,7 @@ class TestApprovalGate:
         result = gate.request_approval(make_request())
         assert result.decision == ApprovalDecision.DENIED
 
-    def test_auto_deny_takes_precedence_over_auto_approve(
-        self, tmp_kill_switch: Path
-    ) -> None:
+    def test_auto_deny_takes_precedence_over_auto_approve(self, tmp_kill_switch: Path) -> None:
         gate = ApprovalGate(
             kill_switch_path=tmp_kill_switch,
             auto_deny=True,
